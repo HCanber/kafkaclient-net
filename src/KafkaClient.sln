@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30110.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KafkaClient", "KafkaClient\KafkaClient.csproj", "{B3705D7F-C68F-49A9-9A6B-F3F53EF8E8FE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1175C712-072E-46B0-BB15-A95B21516370}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KafkaClient.Tests", "KafkaClient.Tests\KafkaClient.Tests.csproj", "{BAB060B7-B988-4F65-82A1-6C8ECE599E23}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B3705D7F-C68F-49A9-9A6B-F3F53EF8E8FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3705D7F-C68F-49A9-9A6B-F3F53EF8E8FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3705D7F-C68F-49A9-9A6B-F3F53EF8E8FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3705D7F-C68F-49A9-9A6B-F3F53EF8E8FE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BAB060B7-B988-4F65-82A1-6C8ECE599E23}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAB060B7-B988-4F65-82A1-6C8ECE599E23}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BAB060B7-B988-4F65-82A1-6C8ECE599E23}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BAB060B7-B988-4F65-82A1-6C8ECE599E23}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

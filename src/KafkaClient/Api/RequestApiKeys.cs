@@ -1,0 +1,16 @@
+namespace KafkaClient.Api
+{
+	public enum RequestApiKeys : short
+	{
+		Produce = 0,
+		Fetch = 1,
+		Offsets = 2,
+		Metadata = 3,
+		LeaderAndIsr = 4,
+		StopReplica = 5,
+		UpdateMetadata = 6,
+		ControlledShutdown = 7,
+		OffsetCommit = 8,
+		OffsetFetch = 9,
+	}
+}
