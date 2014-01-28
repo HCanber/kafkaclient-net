@@ -48,10 +48,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\Broker.cs" />
+    <Compile Include="Api\PartitionMetadata.cs" />
     <Compile Include="Api\TopicMetadataRequest.cs" />
     <Compile Include="IO\EmptyArraySegment.cs" />
     <Compile Include="IO\IRandomAccessReadBuffer.cs" />
     <Compile Include="IO\RandomAccessReadBuffer.cs" />
+    <Compile Include="IO\ReadBufferExtensions.cs" />
+    <Compile Include="KafkaException.cs" />
     <Compile Include="Utils\BitConversion.cs" />
     <Compile Include="Network\Channel.cs" />
     <Compile Include="Network\ClosedChannelException.cs" />

@@ -8,7 +8,7 @@ namespace KafkaClient.Api
 		private readonly string _host;
 		private readonly int _port;
 
-		private Broker(int nodeId, string host, int port)
+		public Broker(int nodeId, string host, int port)
 		{
 			_nodeId = nodeId;
 			_host = host;

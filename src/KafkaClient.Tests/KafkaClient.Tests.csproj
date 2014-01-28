@@ -51,6 +51,7 @@
     <Compile Include="Api\FetchRequestTests.cs" />
     <Compile Include="Api\FetchResponseTests.cs" />
     <Compile Include="Api\MessageTests.cs" />
+    <Compile Include="Api\PartitionMetadataTests.cs" />
     <Compile Include="Api\TopicMetadataRequestTests.cs" />
     <Compile Include="BitConversionTests.cs" />
     <Compile Include="TestHelpers\ByteExtensions.cs" />
