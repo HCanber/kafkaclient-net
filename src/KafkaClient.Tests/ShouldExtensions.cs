@@ -211,12 +211,12 @@ namespace Xunit.Should
 
 		public static void ShouldHaveLength<T>(this T[] arr, int length)
 		{
-			Assert.Equal(arr.Length, length);
+			Assert.Equal(length, arr.Length);
 		}
 
 		public static void ShouldHaveCount<T>(this IReadOnlyCollection<T> collection, int count)
 		{
-			Assert.Equal(collection.Count, count);
+			Assert.Equal(count, collection.Count);
 		}
 	}
 }
