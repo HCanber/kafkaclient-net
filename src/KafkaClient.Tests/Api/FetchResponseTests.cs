@@ -68,7 +68,6 @@ namespace KafkaClient.Tests.Api
 			secondMessage.Message.Value.Array[secondMessage.Message.Value.Offset].ShouldBe((byte)'H');
 			secondMessage.Message.Value.Array[secondMessage.Message.Value.Offset + 1].ShouldBe((byte)'i');
 			secondMessage.Message.Value.Array[secondMessage.Message.Value.Offset + 2].ShouldBe((byte)'!');
-			var checksum = secondMessage.Message.ComputeChecksum();
 		}
 	}
 }

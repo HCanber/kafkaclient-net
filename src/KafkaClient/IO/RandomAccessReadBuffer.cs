@@ -55,6 +55,13 @@ namespace KafkaClient.IO
 			return value;
 		}
 
+		public uint ReadUInt(int position)
+		{
+			if(position + BitConversion.IntSize > _count) throw new ArgumentOutOfRangeException("position", string.Format("Trying to read an int from position={0} when buffer only contains {1} items", position, _count));
+			var value = _bytes.GetUIntFromBigEndianBytes(_startIndex + position);
+			return value;
+		}
+
 		public long ReadLong(int position)
 		{
 			if(position + BitConversion.LongSize > _count) throw new ArgumentOutOfRangeException("position", string.Format("Trying to read a long from position={0} when buffer only contains {1} items", position, _count));

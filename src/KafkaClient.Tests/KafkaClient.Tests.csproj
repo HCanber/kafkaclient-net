@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="Api\FetchRequestTests.cs" />
     <Compile Include="Api\FetchResponseTests.cs" />
+    <Compile Include="Api\MessageTests.cs" />
     <Compile Include="BitConversionTests.cs" />
     <Compile Include="ShouldExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

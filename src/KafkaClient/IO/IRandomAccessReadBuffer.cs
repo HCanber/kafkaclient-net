@@ -7,6 +7,7 @@ namespace KafkaClient.IO
 		byte ReadByte(int position);
 		short ReadShort(int position);
 		int ReadInt(int position);
+		uint ReadUInt(int position);
 		long ReadLong(int position);
 		string ReadShortString(int position);
 		//IReadOnlyList<T> ReadArray<T>(int position,Func<IReadBuffer, T> parseItem);

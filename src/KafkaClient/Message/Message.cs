@@ -18,26 +18,26 @@ namespace KafkaClient.Message
 		private const int _KeySizeLength = 4;
 		private const int _KeyOffset = _KeySizeOffset + _KeySizeLength;
 		private const int _ValueSizeLength = 4;
-	
-	// The amount of overhead bytes in a message
+
+		// The amount of overhead bytes in a message
 		private const int _MessageOverhead = _KeyOffset + _ValueSizeLength;
 		private const int _MinHeaderSize = _CrcLength + _MagicLength + _AttributesLength + _KeySizeLength + _ValueSizeLength;
-	
-	//The current "magic" value
+
+		//The current "magic" value
 		private const byte _CurrentMagicValue = 0;
-	
-	//Specifies the mask for the compression code. 2 bits to hold the compression codec.
-	//0 is reserved to indicate no compression
+
+		//Specifies the mask for the compression code. 2 bits to hold the compression codec.
+		//0 is reserved to indicate no compression
 		private const int _CompressionCodeMask = 0x03;
 
-	
-	//Compression code for uncompressed messages
+
+		//Compression code for uncompressed messages
 		private const int _NoCompression = 0;
 
 
 		private int _valueSizeOffset;
 
-		private Message(IRandomAccessReadBuffer buffer)
+		public Message(IRandomAccessReadBuffer buffer)
 		{
 			_buffer = buffer;
 			_valueSizeOffset = _KeyOffset + Math.Max(KeySize, 0);
@@ -49,13 +49,17 @@ namespace KafkaClient.Message
 		public ArraySegment<byte> Key { get { return _buffer.ReadByteArraySegment(_KeyOffset, KeySize); } }
 
 		public int ValueSize { get { return _buffer.ReadInt(_valueSizeOffset); } }
-		public ArraySegment<byte> Value { get { return _buffer.ReadByteArraySegment(_valueSizeOffset+BitConversion.IntSize, ValueSize); } }
+		public ArraySegment<byte> Value { get { return _buffer.ReadByteArraySegment(_valueSizeOffset + BitConversion.IntSize, ValueSize); } }
+		public byte Magic { get { return _buffer.ReadByte(_MagicOffset); } }
+		public byte Attributes { get { return _buffer.ReadByte(_AttributesOffset); } }
+		public uint Checksum { get { return _buffer.ReadUInt(_CrcOffset); } }
+		public bool IsValid { get { return Checksum == ComputeChecksum(); } }
 
-		public int ComputeChecksum()
+		public uint ComputeChecksum()
 		{
 			var segment = _buffer.GetAsArraySegment();
-			var compute = Crc32.Compute(segment.Array, segment.Offset, segment.Count);
-			throw new NotImplementedException();
+			var checksum = Crc32.Compute(segment.Array, segment.Offset + BitConversion.IntSize, segment.Count - BitConversion.IntSize);
+			return checksum;
 		}
 
 		public static Message Deserialize(IReadBuffer readBuffer, int messageSize)

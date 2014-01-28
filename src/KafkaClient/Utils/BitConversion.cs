@@ -90,6 +90,15 @@ namespace KafkaClient.Utils
 			}
 		}
 
+		/// <summary>Gets the value as <see cref="int"/> from bytes in big endian order.</summary>
+		public static unsafe uint GetUIntFromBigEndianBytes(this byte[] bytes, int startIndex = 0)
+		{
+			fixed(byte* pbyte = &bytes[startIndex])
+			{
+				return (((uint)(*(pbyte + 3))) << 0) | (((uint)(*(pbyte + 2))) << 8) | (((uint)(*(pbyte + 1))) << 16) | (((uint)(*(pbyte + 0))) << 24);
+			}
+		}
+
 
 		/// <summary>Gets the value as <see cref="short"/> from bytes in big endian order. </summary>
 		public static long GetLongFromBigEndianBytes(this ArraySegment<byte> bytes, int startIndex = 0)
