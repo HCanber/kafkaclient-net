@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using KafkaClient.IO;
 using KafkaClient.Utils;
@@ -20,6 +21,7 @@ namespace KafkaClient.Api
 			var writer = new KafkaBinaryWriter(new MemoryStream(buffer));
 			writer.WriteInt(sizeInBytes);
 			WriteTo(writer);
+			Debug.Assert(writer.NumberOfWrittenBytes == totalSize);
 			return buffer;
 		}
 
