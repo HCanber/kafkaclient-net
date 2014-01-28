@@ -47,6 +47,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Api\BrokerTests.cs" />
     <Compile Include="Api\FetchRequestTests.cs" />
     <Compile Include="Api\FetchResponseTests.cs" />
     <Compile Include="Api\MessageTests.cs" />

@@ -47,6 +47,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Api\Broker.cs" />
     <Compile Include="Api\TopicMetadataRequest.cs" />
     <Compile Include="IO\EmptyArraySegment.cs" />
     <Compile Include="IO\IRandomAccessReadBuffer.cs" />
