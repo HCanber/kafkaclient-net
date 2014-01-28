@@ -62,6 +62,7 @@
     <Compile Include="Api\KafkaError.cs" />
     <Compile Include="IO\KafkaWriter.cs" />
     <Compile Include="Utils\Crc32.cs" />
+    <Compile Include="Utils\ICrcHasher.cs" />
     <Compile Include="Utils\LoggerExtensions.cs" />
     <Compile Include="Message\Message.cs" />
     <Compile Include="Message\MessageSetItem.cs" />
