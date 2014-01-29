@@ -51,6 +51,7 @@
     <Compile Include="Api\PartitionMetadata.cs" />
     <Compile Include="Api\TopicMetadata.cs" />
     <Compile Include="Api\TopicMetadataRequest.cs" />
+    <Compile Include="Api\TopicMetadataResponse.cs" />
     <Compile Include="IO\EmptyArraySegment.cs" />
     <Compile Include="IO\IRandomAccessReadBuffer.cs" />
     <Compile Include="IO\RandomAccessReadBuffer.cs" />

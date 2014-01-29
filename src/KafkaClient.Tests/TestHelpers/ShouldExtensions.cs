@@ -39,6 +39,20 @@ namespace Xunit.Should
 			Assert.Contains(item, series, comparer);
 		}
 
+		public static void ShouldContainKeys<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> dictionary, params TKey[] expectedKeys)
+		{
+			foreach(var expectedKey in expectedKeys)
+			{
+				Assert.True(dictionary.ContainsKey(expectedKey), string.Format("Expected dictionary to contain \"{0}", expectedKey));
+			}
+		}
+		public static void ShouldOnlyContainKeys<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> dictionary, params TKey[] expectedKeys)
+		{
+			ShouldContainKeys(dictionary, expectedKeys);
+			var actualCount = dictionary.Count;
+			Assert.True(actualCount==expectedKeys.Length,string.Format("Expected dictionary to contain only a set of keys.\nExpected: {0} itesm\nActual:   {1} items", expectedKeys.Length, actualCount));
+		}
+
 		public static void ShouldNotContain(this string self, string str)
 		{
 			Assert.DoesNotContain(str, self);
