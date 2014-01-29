@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="Api\Broker.cs" />
     <Compile Include="Api\PartitionMetadata.cs" />
+    <Compile Include="Api\TopicMetadata.cs" />
     <Compile Include="Api\TopicMetadataRequest.cs" />
     <Compile Include="IO\EmptyArraySegment.cs" />
     <Compile Include="IO\IRandomAccessReadBuffer.cs" />

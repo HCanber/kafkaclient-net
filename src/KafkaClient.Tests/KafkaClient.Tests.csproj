@@ -53,6 +53,7 @@
     <Compile Include="Api\MessageTests.cs" />
     <Compile Include="Api\PartitionMetadataTests.cs" />
     <Compile Include="Api\TopicMetadataRequestTests.cs" />
+    <Compile Include="Api\TopicMetadataTests.cs" />
     <Compile Include="BitConversionTests.cs" />
     <Compile Include="TestHelpers\ByteExtensions.cs" />
     <Compile Include="TestHelpers\ShouldExtensions.cs" />
