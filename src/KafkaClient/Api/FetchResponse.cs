@@ -43,7 +43,7 @@ namespace KafkaClient.Api
 			return _data.GetEnumerator();
 		}
 
-		public static FetchResponse Deserialize(ReadBuffer readBuffer)
+		public static FetchResponse Deserialize(IReadBuffer readBuffer)
 		{
 			var correlationId = readBuffer.ReadInt();
 			var data = readBuffer.ReadArray(p =>
