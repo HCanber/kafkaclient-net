@@ -7,9 +7,11 @@ This is an _experimental_ Kafka Client for .Net.
   * Branch: master
   * Producer: __NOT__ supported
   * SimpleConsumer: __somewhat__ supported 
+
     Implemented:
     * FetchRequest
     * MetadataRequest
+    
     See [A Guide To The Kafka Protocol](https://cwiki.apache.org/confluence/display/KAFKA/A+Guide+To+The+Kafka+Protocol)
   * Consumer: __NOT__ supported
   * Compression: __NOT__ supported
