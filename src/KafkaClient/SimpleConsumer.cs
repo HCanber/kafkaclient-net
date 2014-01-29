@@ -112,6 +112,15 @@ namespace KafkaClient
 			return fetchResponse;
 		}
 
+		public TopicMetadataResponse GetMetadata(TopicMetadataRequest request)
+		{
+			var bytesResponse = SendRequestAndReadResponse(request);
+			var readBuffer = new ReadBuffer(bytesResponse);
+			var response = TopicMetadataResponse.Deserialize(readBuffer);
+			return response;
+			
+		}
+
 
 		private void GetOrMakeConnection()
 		{
