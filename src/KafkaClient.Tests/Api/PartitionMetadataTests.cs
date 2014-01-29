@@ -28,7 +28,9 @@ namespace KafkaClient.Tests.Api
 				0x00, 0x00, 0x00, 0x01,   // #InSyncReplicas
 				0x00, 0x00, 0x00, 1,      // InSyncReplica1
 			};
-			var response = PartitionMetadata.Deserialize(new ReadBuffer(bytes),brokers);
+			var readBuffer = new ReadBuffer(bytes);
+			var response = PartitionMetadata.Deserialize(readBuffer,brokers);
+			readBuffer.BytesLeft.ShouldBe(0);
 			response.ErrorCode.ShouldBe<short>(0);
 			response.Leader.ShouldBeSameAs(brokers[42]);
 			response.PartitionId.ShouldBe(0x00004567);

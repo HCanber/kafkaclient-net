@@ -42,7 +42,9 @@ namespace KafkaClient.Tests.Api
 				0x00, 0x00, 0x00, 0x03, 												 //       Value, length
 				0x48, 0x69, 0x21, 															 //       Value "Hi!"
 			};
-			var fetchResponse = FetchResponse.Deserialize(new ReadBuffer(bytes));
+			var readBuffer = new ReadBuffer(bytes);
+			var fetchResponse = FetchResponse.Deserialize(readBuffer);
+			readBuffer.BytesLeft.ShouldBe(0);
 			fetchResponse.CorrelationId.ShouldBe(0x12345678);
 			fetchResponse.HasError.ShouldBeFalse();
 			fetchResponse.Data.ShouldHaveCount(1);
