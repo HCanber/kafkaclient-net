@@ -1,4 +1,4 @@
-﻿namespace KafkaClient.Utils
+﻿namespace Kafka.Client.Utils
 {
 	public interface ICrcHasher
 	{

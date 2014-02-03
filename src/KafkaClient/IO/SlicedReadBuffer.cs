@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using KafkaClient.Utils;
+using Kafka.Client.Utils;
 
-namespace KafkaClient.IO
+namespace Kafka.Client.IO
 {
 	public class SlicedReadBuffer : IReadBuffer
 	{
@@ -18,6 +18,8 @@ namespace KafkaClient.IO
 			_count = size;
 			_lastIndex = startIndex + size - 1;
 			_startIndex = startIndex;
+			if(_lastIndex>=buffer.Count)
+				throw new ArgumentOutOfRangeException("size");
 		}
 
 		protected internal int Position { get { return _buffer.Position; } set { _buffer.Position = value; } }
@@ -105,6 +107,13 @@ namespace KafkaClient.IO
 			if(Position + size > _lastIndex + 1)
 				throw new IndexOutOfRangeException();
 			return new SlicedReadBuffer(_buffer, size);
+		}
+
+		public void Skip(int numberOfBytes)
+		{
+			if(Position + numberOfBytes > _lastIndex + 1)
+				throw new IndexOutOfRangeException();
+			_buffer.Skip(numberOfBytes);
 		}
 	}
 }

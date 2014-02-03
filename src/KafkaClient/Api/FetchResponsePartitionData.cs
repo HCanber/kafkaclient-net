@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using System.Diagnostics;
-using KafkaClient.IO;
-using KafkaClient.Message;
+using Common.Logging;
+using Kafka.Client.IO;
 
-namespace KafkaClient.Api
+namespace Kafka.Client.Api
 {
 	public class FetchResponsePartitionData
 	{
+		private static readonly ILog _Logger = LogManager.GetCurrentClassLogger();
 		private readonly short _error;
 		private readonly long _highwaterMarkOffset;
 		private readonly IReadOnlyList<MessageSetItem> _messages;
@@ -55,7 +56,7 @@ namespace KafkaClient.Api
 				var messageSetItem = MessageSetItem.Deserialize(messageSetBuffer);
 				messageSet.Add(messageSetItem);
 			}
-			Debug.Assert(messageSetBuffer.BytesLeft == 0, "messageSetBuffer.BytesLef should be 0");
+			Debug.Assert(messageSetBuffer.BytesLeft == 0, "messageSetBuffer.BytesLeft should be 0");
 			return new FetchResponsePartitionData(error, highwaterMarkOffset, messageSet);
 		}
 

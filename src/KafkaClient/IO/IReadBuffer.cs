@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace KafkaClient.IO
+namespace Kafka.Client.IO
 {
 	public interface IReadBuffer
 	{
@@ -17,5 +17,6 @@ namespace KafkaClient.IO
 		int Count { get; }
 		int CurrentPosition { get; }
 		int BytesLeft { get; }
+		void Skip(int numberOfBytes);
 	}
 }

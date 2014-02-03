@@ -1,8 +1,8 @@
 using System;
 using System.Text;
-using KafkaClient.Utils;
+using Kafka.Client.Utils;
 
-namespace KafkaClient.IO
+namespace Kafka.Client.IO
 {
 	public class RandomAccessReadBuffer : IRandomAccessReadBuffer
 	{

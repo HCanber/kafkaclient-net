@@ -1,4 +1,4 @@
-﻿using KafkaClient.Utils;
+﻿using Kafka.Client.Utils;
 using Xunit;
 using Xunit.Should;
 

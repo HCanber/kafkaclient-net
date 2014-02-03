@@ -1,9 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using KafkaClient.IO;
+using Kafka.Client.IO;
 
-namespace KafkaClient.Api
+namespace Kafka.Client.Api
 {
 	public class TopicMetadataResponse : ResponseBase
 	{

@@ -1,4 +1,6 @@
-namespace KafkaClient.IO
+using Kafka.Client.Exceptions;
+
+namespace Kafka.Client.IO
 {
 	public static class ReadBufferExtensions
 	{

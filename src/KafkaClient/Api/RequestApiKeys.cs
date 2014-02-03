@@ -1,4 +1,4 @@
-namespace KafkaClient.Api
+namespace Kafka.Client.Api
 {
 	public enum RequestApiKeys : short
 	{

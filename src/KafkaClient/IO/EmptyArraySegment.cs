@@ -1,6 +1,6 @@
 using System;
 
-namespace KafkaClient.IO
+namespace Kafka.Client.IO
 {
 	public static class EmptyArraySegment<T>
 	{

@@ -2,10 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using KafkaClient.IO;
-using KafkaClient.Message;
+using Kafka.Client.IO;
 
-namespace KafkaClient.Api
+namespace Kafka.Client.Api
 {
 	public class FetchResponse : ResponseBase, IEnumerable<KeyValuePair<TopicAndPartition, FetchResponsePartitionData>>
 	{

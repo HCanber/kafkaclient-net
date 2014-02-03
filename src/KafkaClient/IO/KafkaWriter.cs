@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using KafkaClient.Utils;
+using Kafka.Client.Utils;
 
-namespace KafkaClient.IO
+namespace Kafka.Client.IO
 {
 	public abstract class KafkaWriter : IDisposable
 	{
@@ -57,7 +57,7 @@ namespace KafkaClient.IO
 
 		public static int GetArraySize<T>(IReadOnlyCollection<T> items, Func<T, int> calculateSizePerItem)
 		{
-			return BitConversion.IntSize + items.Sum(calculateSizePerItem);
+			return BitConversion.IntSize + (items == null ? 0 : items.Sum(calculateSizePerItem));
 		}
 	}
 }

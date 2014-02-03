@@ -1,4 +1,4 @@
-using KafkaClient.IO;
+using Kafka.Client.IO;
 using Xunit;
 using Xunit.Should;
 
@@ -19,7 +19,7 @@ namespace KafkaClient.Tests.Api
 				0x48, 0x69, 0x21, 					 // Value "Hi!"
 			};
 			var buffer = new RandomAccessReadBuffer(bytes);
-			var message = new Message.Message(buffer);
+			var message = new global::Kafka.Client.Api.Message(buffer);
 			message.HasKey.ShouldBeFalse();
 			message.Key.Count.ShouldBe(0);
 			message.ValueSize.ShouldBe(3);
@@ -46,7 +46,7 @@ namespace KafkaClient.Tests.Api
 				0x48, 0x69, 0x21, 					 // Value "Hi!"
 			};
 			var buffer = new RandomAccessReadBuffer(bytes);
-			var message = new Message.Message(buffer);
+			var message = new global::Kafka.Client.Api.Message(buffer);
 			message.IsValid.ShouldBeFalse();
 		}
 	}

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using KafkaClient.Utils;
+using Kafka.Client.Utils;
 
-namespace KafkaClient.IO
+namespace Kafka.Client.IO
 {
 	public class ReadBuffer : IReadBuffer
 	{
@@ -93,6 +93,16 @@ namespace KafkaClient.IO
 		public IReadBuffer Slice(int size)
 		{
 			return new SlicedReadBuffer(this, size);
+		}
+
+		public void Skip(int numberOfBytes)
+		{
+			var bytesLeft = BytesLeft;
+			if(numberOfBytes > bytesLeft)
+			{
+				throw new ArgumentOutOfRangeException("numberOfBytes", string.Format("The buffer only contains {0} bytes. Cannot skip {1} bytes", bytesLeft, numberOfBytes));
+			}
+			Position += numberOfBytes;
 		}
 	}
 }

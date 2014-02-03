@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
-using KafkaClient.Api;
-using KafkaClient.IO;
+using Kafka.Client.Api;
+using Kafka.Client.IO;
 using Xunit;
 using Xunit.Should;
 

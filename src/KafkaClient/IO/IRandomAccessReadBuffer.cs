@@ -1,6 +1,6 @@
 using System;
 
-namespace KafkaClient.IO
+namespace Kafka.Client.IO
 {
 	public interface IRandomAccessReadBuffer
 	{

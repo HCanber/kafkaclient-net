@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using KafkaClient.IO;
+using Kafka.Client.IO;
 
-namespace KafkaClient.Api
+namespace Kafka.Client.Api
 {
 	public class PartitionMetadata
 	{
@@ -38,7 +38,8 @@ namespace KafkaClient.Api
 			var errorCode = buffer.ReadShortInRange(-1, short.MaxValue, "Error code");
 			var partitionId = buffer.ReadIntInRange(-1, short.MaxValue, "Partition Id");
 			var leaderId = buffer.ReadInt();
-			var leader = brokersById[leaderId];
+			Broker leader;
+			if(!brokersById.TryGetValue(leaderId, out leader)) leader = null;
 
 			var replicaIds = buffer.ReadArray(buf => buf.ReadInt());
 			var replicas = replicaIds.Select(replica => brokersById[replica]).ToList();

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace KafkaClient.Network
+namespace Kafka.Client.Network
 {
 	[Serializable]
 	public class ErrorReadingException : Exception

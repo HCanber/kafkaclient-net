@@ -1,58 +1,52 @@
-﻿using KafkaClient.IO;
-using KafkaClient.Utils;
+﻿using System.Diagnostics;
+using System.IO;
+using Kafka.Client.IO;
+using Kafka.Client.Utils;
 
-namespace KafkaClient.Api
+namespace Kafka.Client.Api
 {
-	public abstract class RequestBase : RequestOrResponse
+	public abstract class RequestBase : IKafkaRequest
 	{
 		private readonly short _apiKey;
-		private readonly int _correlationId;
-		private readonly string _clientId;
 
-		protected RequestBase(short apiKey, int correlationId, string clientId)
+		protected RequestBase(short apiKey)
 		{
 			_apiKey = apiKey;
-			_correlationId = correlationId;
-			_clientId = clientId;
-		}
-
-		protected override int SizeInBytes
-		{
-			get
-			{
-				const int shortSize = BitConversion.ShortSize;
-				const int intSize = BitConversion.IntSize;
-				return
-					shortSize + // ApiKey
-					shortSize + // Version
-					intSize +   // Correlation Id
-					KafkaWriter.GetShortStringLength(_clientId)+
-					MessageSizeInBytes;
-			}
 		}
 
 		protected abstract int MessageSizeInBytes { get; }
 
 		protected virtual short Version { get { return 0; } }
 
-		protected override void WriteTo(KafkaWriter writer)
+		public virtual int GetSize(string clientId)
+		{
+				const int shortSize = BitConversion.ShortSize;
+				const int intSize = BitConversion.IntSize;
+				return
+					shortSize + // Api Key
+					shortSize + // Api Version
+					intSize +   // Correlation Id
+					KafkaWriter.GetShortStringLength(clientId)+
+					MessageSizeInBytes;
+			
+		}
+
+		protected virtual void WriteTo(KafkaWriter writer, string clientId, int correlationId)
 		{
 			writer.WriteShort(_apiKey);
 			writer.WriteShort(Version);
-			writer.WriteInt(_correlationId);
-			writer.WriteShortString(_clientId);
+			writer.WriteInt(correlationId);
+			writer.WriteShortString(clientId);
 			WriteRequestMessage(writer);
 		}
 
 		protected abstract void WriteRequestMessage(KafkaWriter writer);
 
-		//protected abstract void HandleError(Exception e, requestChannel: RequestChannel, request: RequestChannel.Request): Unit = {}
-
-		/* The purpose of this API is to return a string description of the Request mainly for the purpose of request logging.
-		*  This API has no meaning for a Response object.
-		* @param details If this is false, omit the parts of the request description that are proportional to the number of
-		*                topics or partitions. This is mainly to control the amount of request logging. */
-		//def describe(details: Boolean):String
-
+		public void WriteTo(Stream stream, string clientId, int correlationId)
+		{
+			var writer = new KafkaBinaryWriter(stream);
+			WriteTo(writer,clientId,correlationId);
+			Debug.Assert(writer.NumberOfWrittenBytes == GetSize(clientId));
+		}
 	}
 }

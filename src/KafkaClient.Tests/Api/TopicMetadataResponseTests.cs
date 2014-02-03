@@ -1,6 +1,6 @@
 using System;
-using KafkaClient.Api;
-using KafkaClient.IO;
+using Kafka.Client.Api;
+using Kafka.Client.IO;
 using Xunit;
 using Xunit.Should;
 
@@ -57,7 +57,7 @@ namespace KafkaClient.Tests.Api
 			response.CorrelationId.ShouldBe(0x01020304);
 			response.BrokersById.ShouldHaveCount(3);
 			response.BrokersById.ShouldOnlyContainKeys(1,2,3);
-			response.BrokersById[1].Port.ShouldBe(21);
+			response.BrokersById[1].Host.Port.ShouldBe<ushort>(21);
 			response.TopicMetadatas.ShouldHaveCount(1);
 		}
 	}

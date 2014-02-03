@@ -1,10 +1,10 @@
 using System;
-using KafkaClient.IO;
-using KafkaClient.Utils;
+using Kafka.Client.IO;
+using Kafka.Client.Utils;
 
-namespace KafkaClient.Message
+namespace Kafka.Client.Api
 {
-	public class Message
+	public class Message : IMessage
 	{
 		private readonly IRandomAccessReadBuffer _buffer;
 		//The current offset and size for all the fixed-length fields

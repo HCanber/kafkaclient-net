@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using KafkaClient.IO;
+﻿using System.Collections.Generic;
+using Kafka.Client.IO;
 
-namespace KafkaClient.Api
+namespace Kafka.Client.Api
 {
 	public class TopicMetadataRequest : RequestBase
 	{
 		private readonly IReadOnlyCollection<string> _topics;
-		protected const int DefaultCorrelationId = 0;
 
-		public TopicMetadataRequest(IReadOnlyCollection<string> topics, string clientId, int correlationId = DefaultCorrelationId)
-			: base((short)RequestApiKeys.Metadata, correlationId, clientId)
+		public TopicMetadataRequest(IReadOnlyCollection<string> topics)
+			: base((short)RequestApiKeys.Metadata)
 		{
 			_topics = topics;
 		}
@@ -25,15 +23,15 @@ namespace KafkaClient.Api
 			writer.WriteArray(_topics, writer.WriteShortString);
 		}
 
-		public static TopicMetadataRequest CreateAllTopics(string clientId, int correlationId = DefaultCorrelationId)
+		public static TopicMetadataRequest CreateAllTopics()
 		{
-			return new TopicMetadataRequest(new string[0], clientId, correlationId);
+			return new TopicMetadataRequest(new string[0]);
 		}
 
 
-		public static TopicMetadataRequest CreateOneTopic(string topic, string clientId, int correlationId = DefaultCorrelationId)
+		public static TopicMetadataRequest CreateForTopics(params string[] topics)
 		{
-			return new TopicMetadataRequest(new string[] { topic }, clientId, correlationId);
+			return new TopicMetadataRequest(topics);
 		}
 	}
 }

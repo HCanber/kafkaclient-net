@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using KafkaClient.Utils;
+using Kafka.Client.Utils;
 
-namespace KafkaClient.IO
+namespace Kafka.Client.IO
 {
 	/// <summary>
 	/// Writes data into underlying stream using big endian bytes order for primitive types

@@ -1,4 +1,4 @@
-﻿namespace KafkaClient.Api
+﻿namespace Kafka.Client.Api
 {
 	public static class Request
 	{

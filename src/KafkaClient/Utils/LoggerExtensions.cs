@@ -1,16 +1,46 @@
 using System;
 using Common.Logging;
 
-namespace KafkaClient.Utils
+namespace Kafka.Client.Utils
 {
 	public static class LoggerExtensions
 	{
-		public static void SwallowAsWarning(this ILog log, Action action)
+		public static void InfoException(this ILog log, Exception ex, string format, params object[] args)
 		{
-			Swallow(action,log.Warn);
+			log.Info(handler => handler(format, args), ex);
 		}
 
-		private static void Swallow(Action action, Action<string,Exception> log)
+		public static void TraceException(this ILog log, Exception ex, string format, params object[] args)
+		{
+			log.Trace(handler => handler(format, args), ex);
+		}
+
+		public static void WarnException(this ILog log, Exception ex, string format, params object[] args)
+		{
+			log.Warn(handler => handler(format, args), ex);
+		}
+
+		public static void ErrorException(this ILog log, Exception ex, string format, params object[] args)
+		{
+			log.Error(handler => handler(format, args), ex);
+		}
+
+		public static void FatalException(this ILog log, Exception ex, string format, params object[] args)
+		{
+			log.Fatal(handler => handler(format, args), ex);
+		}
+
+		public static void SwallowAsWarning(this ILog log, Action action)
+		{
+			Swallow(action, ex=>log.WarnException(ex,ex.ToString()));
+		}
+
+		public static void SwallowAsWarning(this ILog log, Action action, Func<Exception, string> message)
+		{
+			Swallow(action, ex=>log.WarnException(ex,message(ex)));
+		}
+
+		private static void Swallow(Action action, Action<Exception> log)
 		{
 			try
 			{
@@ -18,7 +48,7 @@ namespace KafkaClient.Utils
 			}
 			catch(Exception ex)
 			{
-				log(ex.Message, ex);
+				log(ex);
 			}
 		}
 	}

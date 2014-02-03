@@ -1,134 +1,119 @@
-﻿using System;
-using System.Net.Sockets;
-using System.Reflection;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Common.Logging;
-using KafkaClient.Api;
-using KafkaClient.IO;
-using KafkaClient.Network;
+using Kafka.Client.Api;
+using Kafka.Client.Exceptions;
+using Kafka.Client.Utils;
 
-namespace KafkaClient
+namespace Kafka.Client
 {
-	public class SimpleConsumer
+	public class SimpleConsumer : ConsumerBase
 	{
 		private static readonly ILog _Logger = LogManager.GetCurrentClassLogger();
+		public const int DefaultFetchSize = 4*1024;
+		public const int DefaultMaxFetchSize = 8*DefaultFetchSize;
+		private readonly string _topic;
+		private int _fetchSizeBytes;
+		private readonly int? _maxFetchSizeBytes;
+		private readonly int _maxWaitTimeInMs;
+		private Lazy<Dictionary<int, long>> _offsetsPerPartition;
 
-		private readonly string _host;
-		private readonly int _port;
-		private readonly int _soTimeout;
-		private readonly int _bufferSize;
-		private readonly string _clientId;
-		private readonly Channel _channel;
-		private readonly string _brokerInfo;
-		private bool _isClosed;
-		private readonly object _lock = new object();
-
-		public SimpleConsumer(string host, int port, int soTimeout, int bufferSize, string clientId)
+		public SimpleConsumer(IKafkaClient client, string topic, IEnumerable<int> onlyTheesePartitions=null, int fetchSizeBytes=DefaultFetchSize,int? maxFetchSizeBytes= DefaultMaxFetchSize,int maxWaitTimeInMs=1000,IEnumerable<KeyValuePair<int, long>> startOffsets = null)
+			: base(client)
 		{
-			_host = host;
-			_port = port;
-			_soTimeout = soTimeout;
-			_bufferSize = bufferSize;
-			_clientId = clientId;
-			_channel = new Channel(host, port, bufferSize, Channel.UseDefaultBufferSize, soTimeout);
-			_brokerInfo = string.Format("host_{0}-port_{1}", host, port);
-
-		}
-
-		private void Connect()
-		{
-			Close();
-			_channel.Connect();
-		}
-
-		private void Disconnect()
-		{
-			if(_channel.IsConnected)
+			if(topic == null) throw new ArgumentNullException("topic");
+			if(topic.Length == 0) throw new ArgumentNullException("topic");
+			_topic = topic;
+			_fetchSizeBytes = fetchSizeBytes;
+			_maxFetchSizeBytes = maxFetchSizeBytes;
+			_maxWaitTimeInMs = maxWaitTimeInMs;
+			var arrOnlyPartitions =onlyTheesePartitions==null ? null : onlyTheesePartitions.OrderBy(i=>i).ToArray();
 			{
-				_Logger.DebugFormat("Disconnecting from {0}:{1}", _host, _port);
-				_channel.Disconnect();
-			}
-		}
-
-		private void Reconnect()
-		{
-			Disconnect();
-			Connect();
-		}
-
-		public void Close()
-		{
-			lock(_lock)
-			{
-				Disconnect();
-				_isClosed = true;
-			}
-		}
-
-		private byte[] SendRequestAndReadResponse(RequestOrResponse msg, int numberOfRetries=1)
-		{
-			Func<RequestOrResponse, byte[]> sendAndReceive = m =>
-			{
-				_channel.Send(m);
-				return _channel.Receive();
-			};
-
-			var numberOfTriesLeft = numberOfRetries + 1;
-			lock(_lock)
-			{
-				GetOrMakeConnection();
-				while(numberOfTriesLeft > 0)
-				{
-					try
+				_offsetsPerPartition = new Lazy<Dictionary<int, long>>(() =>
+				{					
+					var partitions = GetPartitionsForTopic();
+					if(arrOnlyPartitions != null)
 					{
-						var response = sendAndReceive(msg);
-						return response;
+						partitions = partitions.Where(p => Array.BinarySearch(arrOnlyPartitions, p) >= 0).ToList();
 					}
-					catch(Exception ex)
+					var dictionary = partitions.ToDictionary(partition => partition, _ => 0L);
+					startOffsets.ForEach(kvp => dictionary[kvp.Key] = kvp.Value);
+					return dictionary;
+				});
+			}
+		}
+
+		public IEnumerable<IMessageSetItem> GetMessages()
+		{
+			while(true)
+			{
+				var offsetsPerPartition = _offsetsPerPartition.Value;
+				var partitionsToGet = offsetsPerPartition.Keys.ToList();
+				while(partitionsToGet.Count>0)
+				{
+					IReadOnlyCollection<PayloadForTopicAndPartition<long>> failedItems;
+					var partitionAndOffsets = partitionsToGet.Select(p=>new KeyValuePair<int,long>(p,offsetsPerPartition[p]));
+					var responses = FetchMessages(_topic, partitionAndOffsets, out failedItems,fetchMaxBytes: _fetchSizeBytes, maxWaitForMessagesInMs: _maxWaitTimeInMs);
+					partitionsToGet.Clear();
+					if(failedItems!=null && failedItems.Count>0)
+						throw new FetchFailed(failedItems.Select(p => Tuple.Create(p.TopicAndPartition, (FetchResponsePartitionData)null)).ToList(), "Failures occurred when fetching partitions and offsets: " + string.Join(", ", failedItems.Select(t => t.TopicAndPartition + ":" + t.Payload)));
+
+					var errorResponses = responses.SelectMany(r => r.Data).Where(kvp => kvp.Value.HasError).Select(kvp => Tuple.Create(kvp.Key, kvp.Value)).ToList();
+					if(errorResponses.Count > 0)
+						throw new FetchFailed(errorResponses, "Fetch Error: " + string.Join(", ", errorResponses.Select(t => t.Item1 + ":" + t.Item2.Error)));
+
+					
+					foreach(var response in responses)
 					{
-						if(ex is ErrorReadingException || ex is SocketException)
+						foreach(var dataByTopicAndPartition in response.Data)
 						{
-							numberOfTriesLeft--;
-							if(numberOfTriesLeft > 0)
+							var topicAndPartition = dataByTopicAndPartition.Key;
+							var partition = topicAndPartition.Partition;
+							foreach(var messageSetItem in dataByTopicAndPartition.Value.Messages)
 							{
-								Reconnect();
-								_Logger.Info("Reconnect due to socket error: " + ex.Message);
+								var message = messageSetItem.Message;
+								var tooSmallBufferSizeMessage = message as TooSmallBufferSizeMessage;
+								if(tooSmallBufferSizeMessage != null)
+								{
+									if(_maxFetchSizeBytes.HasValue && _fetchSizeBytes == _maxFetchSizeBytes)
+									{
+										_Logger.ErrorFormat(string.Format("MaxFetchSizeBytes must be increased above {0} bytes in order to receive {1}, offset {2}.", _maxFetchSizeBytes, topicAndPartition, offsetsPerPartition[partition]));
+										throw new ConsumerFetchSizeTooSmall(string.Format("Could not get the whole message from {0}. MaxFetchSizeBytes must be increased.", topicAndPartition));
+									}
+									//Increase the fetchSize. Cap to MaxFetchSize
+									_fetchSizeBytes =_maxFetchSizeBytes.HasValue ? Math.Min(_maxFetchSizeBytes.Value, _fetchSizeBytes * 2):_fetchSizeBytes * 2;
+									_Logger.InfoFormat("Could not receive the message from {1}, offset {2} as fetchSize is to small. Increased the fetchSize to {0}. Will retry.", _fetchSizeBytes,topicAndPartition,offsetsPerPartition[partition]);
+									partitionsToGet.Add(partition);
+								}
+								else if(!message.IsValid)
+								{
+									throw new CrcInvalid(topicAndPartition, messageSetItem.Offset, message.Checksum, message.ComputeChecksum());
+								}
+								else
+								{
+									var currentOffset = offsetsPerPartition[partition];
+									var offset = messageSetItem.Offset;
+									if(offset >= currentOffset)
+									{
+										offsetsPerPartition[partition] = offset + 1;
+									}
+									yield return messageSetItem;
+								}
 							}
-							else
-								throw;
 						}
-						else
-							throw;
+					}
+					if(_Logger.IsTraceEnabled && partitionsToGet.Count > 0)
+					{
+						_Logger.TraceFormat(string.Format("Retrying the following partitions for topic \"{0}\": {1}", _topic, string.Join(",", partitionsToGet)));
 					}
 				}
 			}
-			throw new InvalidOperationException("This should be unreachable. NumberOfRetries="+numberOfRetries);
 		}
 
-		public FetchResponse Fetch(FetchRequest request)
+		private IReadOnlyCollection<int> GetPartitionsForTopic()
 		{
-			var response = SendRequestAndReadResponse(request);
-			var readBuffer = new ReadBuffer(response);
-			var fetchResponse = FetchResponse.Deserialize(readBuffer);
-			return fetchResponse;
+			return Client.GetPartitionsForTopics(new[] { _topic }).First().Value;
 		}
-
-		public TopicMetadataResponse GetMetadata(TopicMetadataRequest request)
-		{
-			var bytesResponse = SendRequestAndReadResponse(request);
-			var readBuffer = new ReadBuffer(bytesResponse);
-			var response = TopicMetadataResponse.Deserialize(readBuffer);
-			return response;
-			
-		}
-
-
-		private void GetOrMakeConnection()
-		{
-			if(!_isClosed && !_channel.IsConnected)
-			{
-				Connect();
-			}
-		}
-
 	}
 }

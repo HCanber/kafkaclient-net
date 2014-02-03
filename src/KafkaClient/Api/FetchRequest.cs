@@ -1,27 +1,23 @@
 using System.Collections.Generic;
 using System.Linq;
-using KafkaClient.IO;
-using KafkaClient.Utils;
+using Kafka.Client.IO;
+using Kafka.Client.Utils;
 
-namespace KafkaClient.Api
+namespace Kafka.Client.Api
 {
 	public class FetchRequest : RequestBase
 	{
 		private readonly int _minBytes;
 		private readonly int _maxWait;
-		private readonly int _correlationId;
-		private List<IGrouping<string, KeyValuePair<TopicAndPartition, PartitionFetchInfo>>> _requestInfoGroupedByTopic;
-		protected const short CurrentVersion = 0;
-		protected const int DefaultMaxWait = 0;
-		protected const int DefaultMinBytes = 0;
-		protected const int DefaultCorrelationId = 0;
+		private readonly List<IGrouping<string, KeyValuePair<TopicAndPartition, PartitionFetchInfo>>> _requestInfoGroupedByTopic;
+		public const int DefaultMaxWait = 0;
+		public const int DefaultMinBytes = 0;
 
-		public FetchRequest(string clientId, IEnumerable<KeyValuePair<TopicAndPartition, PartitionFetchInfo>> requestInfo, int minBytes = DefaultMinBytes, int maxWait = DefaultMaxWait, int correlationId = DefaultCorrelationId)
-			: base((short)RequestApiKeys.Fetch, correlationId, clientId)
+		public FetchRequest(IEnumerable<KeyValuePair<TopicAndPartition, PartitionFetchInfo>> requestInfo, int minBytes = DefaultMinBytes, int maxWait = DefaultMaxWait)
+			: base((short)RequestApiKeys.Fetch)
 		{
 			_minBytes = minBytes;
 			_maxWait = maxWait;
-			_correlationId = correlationId;
 			_requestInfoGroupedByTopic = requestInfo.GroupBy(i => i.Key.Topic).ToList();
 		}
 
@@ -75,15 +71,13 @@ namespace KafkaClient.Api
 			}
 		}
 
-		public static FetchRequest CreateSingleRequest(string topic, int partition, long offset, int fetchSize, string clientId = "", int minBytes=DefaultMinBytes, int maxWait=DefaultMaxWait, int correlationId=DefaultCorrelationId)
+		public static FetchRequest CreateSingleRequest(string topic, int partition, long offset, int fetchSize, int minBytes=DefaultMinBytes, int maxWait=DefaultMaxWait)
 		{
-			return new FetchRequest(clientId,
-				new []{new KeyValuePair<TopicAndPartition, PartitionFetchInfo>(
+			return new FetchRequest(new []{new KeyValuePair<TopicAndPartition, PartitionFetchInfo>(
 					new TopicAndPartition(topic,partition),
 					new PartitionFetchInfo(offset,fetchSize) ) },
 				minBytes,
-				maxWait,
-				correlationId
+				maxWait
 				);
 		}
 	}

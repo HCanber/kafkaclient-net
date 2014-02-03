@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace KafkaClient.Utils
+namespace Kafka.Client.Utils
 {
 	/// <summary>
 	/// Utilty class for managing bits and bytes.

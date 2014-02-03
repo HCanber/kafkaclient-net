@@ -7,8 +7,8 @@
     <ProjectGuid>{B3705D7F-C68F-49A9-9A6B-F3F53EF8E8FE}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>KafkaClient</RootNamespace>
-    <AssemblyName>KafkaClient</AssemblyName>
+    <RootNamespace>Kafka.Client</RootNamespace>
+    <AssemblyName>Kafka.Client</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
@@ -36,7 +36,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Common.Logging">
-      <HintPath>..\packages\Common.Logging.2.1.2\lib\net40\Common.Logging.dll</HintPath>
+      <HintPath>..\..\..\src\packages\Common.Logging.2.1.2\lib\net40\Common.Logging.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -48,18 +48,42 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\Broker.cs" />
+    <Compile Include="IMessage.cs" />
+    <Compile Include="IMessageSetItem.cs" />
+    <Compile Include="Api\KafkaRequestExtensions.cs" />
+    <Compile Include="Api\TooSmallBufferSizeMessage.cs" />
+    <Compile Include="Api\TopicAndPartition.cs" />
+    <Compile Include="Utils\JetBrainsAnnotations.cs" />
+    <Compile Include="KafkaClient.cs" />
+    <Compile Include="Exceptions\ConsumerFetchSizeTooSmall.cs" />
+    <Compile Include="Exceptions\CrcInvalid.cs" />
+    <Compile Include="Exceptions\FailedMessagesException.cs" />
+    <Compile Include="Exceptions\FetchFailed.cs" />
+    <Compile Include="IKafkaClient.cs" />
+    <Compile Include="IO\IKafkaMessageWriteable.cs" />
     <Compile Include="Api\PartitionMetadata.cs" />
     <Compile Include="Api\TopicMetadata.cs" />
     <Compile Include="Api\TopicMetadataRequest.cs" />
     <Compile Include="Api\TopicMetadataResponse.cs" />
+    <Compile Include="HostPort.cs" />
     <Compile Include="IO\EmptyArraySegment.cs" />
+    <Compile Include="IO\IKafkaRequest.cs" />
     <Compile Include="IO\IRandomAccessReadBuffer.cs" />
+    <Compile Include="IO\KafkaRequestWriteable.cs" />
     <Compile Include="IO\RandomAccessReadBuffer.cs" />
     <Compile Include="IO\ReadBufferExtensions.cs" />
-    <Compile Include="KafkaException.cs" />
+    <Compile Include="ConsumerBase.cs" />
+    <Compile Include="KafkaClientBase.cs" />
+    <Compile Include="Exceptions\KafkaException.cs" />
+    <Compile Include="Exceptions\KafkaInvalidPartitionException.cs" />
+    <Compile Include="Exceptions\KafkaInvalidTopicException.cs" />
+    <Compile Include="Network\IKafkaConnection.cs" />
+    <Compile Include="Network\KafkaConnection.cs" />
+    <Compile Include="Exceptions\PartitionUnavailableException.cs" />
+    <Compile Include="PayloadForTopicAndPartition.cs" />
+    <Compile Include="SimpleConsumer.cs" />
+    <Compile Include="SynchronousProducer.cs" />
     <Compile Include="Utils\BitConversion.cs" />
-    <Compile Include="Network\Channel.cs" />
-    <Compile Include="Network\ClosedChannelException.cs" />
     <Compile Include="Network\ErrorReadingException.cs" />
     <Compile Include="Api\FetchRequest.cs" />
     <Compile Include="Api\FetchResponse.cs" />
@@ -68,24 +92,22 @@
     <Compile Include="IO\KafkaBinaryWriter.cs" />
     <Compile Include="Api\KafkaError.cs" />
     <Compile Include="IO\KafkaWriter.cs" />
+    <Compile Include="Utils\CollectionExtensions.cs" />
+    <Compile Include="Utils\ConcurrentSet.cs" />
     <Compile Include="Utils\Crc32.cs" />
     <Compile Include="Utils\ICrcHasher.cs" />
     <Compile Include="Utils\LoggerExtensions.cs" />
-    <Compile Include="Message\Message.cs" />
-    <Compile Include="Message\MessageSetItem.cs" />
+    <Compile Include="Api\Message.cs" />
+    <Compile Include="Api\MessageSetItem.cs" />
     <Compile Include="Api\PartitionFetchInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IO\ReadBuffer.cs" />
     <Compile Include="Api\Request.cs" />
     <Compile Include="Api\RequestApiKeys.cs" />
     <Compile Include="Api\RequestBase.cs" />
-    <Compile Include="Api\RequestOrResponse.cs" />
     <Compile Include="Api\ResponseBase.cs" />
-    <Compile Include="SimpleConsumer.cs" />
     <Compile Include="IO\SlicedReadBuffer.cs" />
-    <Compile Include="Api\TopicAndPartition.cs" />
     <Compile Include="Api\TopicData.cs" />
-    <Compile Include="IO\WriteBuffer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
