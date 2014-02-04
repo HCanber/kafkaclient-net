@@ -16,16 +16,16 @@ namespace Kafka.Client.IO
 		internal int NumberOfWrittenBytes = 0;
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="Serialization.KafkaBinaryWriter"/> class 
-		/// using big endian bytes order for primive types and UTF-8 encoding for strings.
+		/// Initializes a new instance of the <see cref="KafkaBinaryWriter"/> class 
+		/// using big endian bytes order for primitive types and UTF-8 encoding for strings.
 		/// </summary>
 		protected KafkaBinaryWriter()
 		{
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="Serialization.KafkaBinaryWriter"/> class 
-		/// using big endian bytes order for primive types and UTF-8 encoding for strings.
+		/// Initializes a new instance of the <see cref="KafkaBinaryWriter"/> class 
+		/// using big endian bytes order for primitive types and UTF-8 encoding for strings.
 		/// </summary>
 		/// <param name="output">
 		/// The output stream.
@@ -36,8 +36,8 @@ namespace Kafka.Client.IO
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="Serialization.KafkaBinaryWriter"/> class 
-		/// using big endian bytes order for primive types and UTF-8 encoding for strings.
+		/// Initializes a new instance of the <see cref="KafkaBinaryWriter"/> class 
+		/// using big endian bytes order for primitive types and UTF-8 encoding for strings.
 		/// </summary>
 		public KafkaBinaryWriter(BinaryWriter binaryWriter)
 		{
@@ -83,9 +83,6 @@ namespace Kafka.Client.IO
 		/// <param name="value">
 		/// The value to write.
 		/// </param>
-		/// <param name="encoding">
-		/// The encoding to use.
-		/// </param>
 		public override void WriteShortString(string value)
 		{
 			if(value == null)
@@ -104,7 +101,7 @@ namespace Kafka.Client.IO
 			}
 		}
 
-		public override void WriteArray<T>(IReadOnlyCollection<T> items, Action<T> writeItem)
+		public override void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<T> writeItem)
 		{
 			var itemCount = items == null ? 0 : items.Count;
 			WriteInt(itemCount);
@@ -116,7 +113,7 @@ namespace Kafka.Client.IO
 				}
 			}
 		}
-		public override void WriteArray<T>(IReadOnlyCollection<T> items, Action<T, int> writeItem)
+		public override void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<T, int> writeItem)
 		{
 			var itemCount = items == null ? 0 : items.Count;
 			WriteInt(itemCount);
@@ -130,7 +127,7 @@ namespace Kafka.Client.IO
 				}
 			}
 		}
-		public override void WriteArray<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T> writeItem)
+		public override void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T> writeItem)
 		{
 			var itemCount = items == null ? 0 : items.Count;
 			WriteInt(itemCount);
@@ -142,7 +139,7 @@ namespace Kafka.Client.IO
 				}
 			}
 		}
-		public override void WriteArray<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T, int> writeItem)
+		public override void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T, int> writeItem)
 		{
 			var itemCount = items == null ? 0 : items.Count;
 			WriteInt(itemCount);
@@ -154,6 +151,21 @@ namespace Kafka.Client.IO
 					writeItem(this, item, index);
 					index++;
 				}
+			}
+		}
+
+		public override void WriteVariableBytes(byte[] bytes)
+		{
+			if(bytes == null)
+			{
+				WriteInt(-1);
+			}
+			else
+			{
+				var length = bytes.Length;
+				WriteInt(length);
+				_binaryWriter.Write(bytes);
+				NumberOfWrittenBytes += length;
 			}
 		}
 

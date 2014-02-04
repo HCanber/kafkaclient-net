@@ -29,12 +29,12 @@ namespace Kafka.Client.Api
 			writer.WriteInt(ReplicaId);
 			writer.WriteInt(_maxWait);
 			writer.WriteInt(_minBytes);
-			writer.WriteArray(_requestInfoGroupedByTopic, grp =>
+			writer.WriteRepeated(_requestInfoGroupedByTopic, grp =>
 			{
 				var topic = grp.Key;
 				var partitionFetchInfos = grp.ToList();
 				writer.WriteShortString(topic);
-				writer.WriteArray(partitionFetchInfos, info =>
+				writer.WriteRepeated(partitionFetchInfos, info =>
 				{
 					var topicAndPartition = info.Key;
 					var partitionFetchInfo = info.Value;

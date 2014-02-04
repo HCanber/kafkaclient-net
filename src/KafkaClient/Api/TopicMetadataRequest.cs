@@ -20,7 +20,7 @@ namespace Kafka.Client.Api
 
 		protected override void WriteRequestMessage(KafkaWriter writer)
 		{
-			writer.WriteArray(_topics, writer.WriteShortString);
+			writer.WriteRepeated(_topics, writer.WriteShortString);
 		}
 
 		public static TopicMetadataRequest CreateAllTopics()

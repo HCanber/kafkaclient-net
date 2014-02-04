@@ -40,10 +40,12 @@ namespace Kafka.Client.IO
 
 		public abstract void WriteShortString(string value);
 
-		public abstract void WriteArray<T>(IReadOnlyCollection<T> items, Action<T> writeItem);
-		public abstract void WriteArray<T>(IReadOnlyCollection<T> items, Action<T, int> writeItem);
-		public abstract void WriteArray<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T> writeItem);
-		public abstract void WriteArray<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T, int> writeItem);
+		public abstract void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<T> writeItem);
+		public abstract void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<T, int> writeItem);
+		public abstract void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T> writeItem);
+		public abstract void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T, int> writeItem);
+
+		public abstract void WriteVariableBytes(byte[] bytes);
 
 		public static int GetShortStringLength(string s)
 		{
