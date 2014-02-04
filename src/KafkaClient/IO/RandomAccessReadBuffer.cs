@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using Kafka.Client.Utils;
 
@@ -94,6 +95,11 @@ namespace Kafka.Client.IO
 		public IRandomAccessReadBuffer Slice(int position, int size)
 		{
 			return new RandomAccessReadBuffer(_bytes, _startIndex + position, size);
+		}
+
+		public void WriteTo(Stream stream)
+		{
+			stream.Write(_bytes,_startIndex,_count);
 		}
 	}
 }

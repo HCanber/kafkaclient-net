@@ -10,10 +10,10 @@ namespace Kafka.Client.Api
 		private TooSmallBufferSizeMessage() {/* Intentionally left blank */}
 
 		bool IMessage.HasKey { get { return false; } }
-		int IMessage.KeySize { get { return 0; } }
-		ArraySegment<byte> IMessage.Key { get { return EmptyArraySegment<byte>.Instance; } }
-		int IMessage.ValueSize { get { return 0; } }
-		ArraySegment<byte> IMessage.Value { get { return EmptyArraySegment<byte>.Instance; } }
+		int IMessage.KeySize { get { return -1; } }
+		ArraySegment<byte>? IMessage.Key { get { return null; } }
+		int IMessage.ValueSize { get { return -1; } }
+		ArraySegment<byte>? IMessage.Value { get { return null; } }
 		byte IMessage.Magic { get { return 0; } }
 		byte IMessage.Attributes { get { return 0; } }
 		uint IMessage.Checksum { get { return 42; } }
@@ -22,5 +22,15 @@ namespace Kafka.Client.Api
 		public static TooSmallBufferSizeMessage Instance { get { return _instance; } }
 
 		uint IMessage.ComputeChecksum() { return 4711; }
+
+		int IKafkaRequestPart.GetSize()
+		{
+			return 0;
+		}
+
+		void IKafkaRequestPart.WriteTo(KafkaWriter writer)
+		{
+			//Intentionally left blank
+		}
 	}
 }

@@ -53,6 +53,7 @@
     <Compile Include="Api\KafkaRequestExtensions.cs" />
     <Compile Include="Api\TooSmallBufferSizeMessage.cs" />
     <Compile Include="Api\TopicAndPartition.cs" />
+    <Compile Include="IO\IKafkaRequestPart.cs" />
     <Compile Include="Utils\JetBrainsAnnotations.cs" />
     <Compile Include="KafkaClient.cs" />
     <Compile Include="Exceptions\ConsumerFetchSizeTooSmall.cs" />

@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Text;
 using Kafka.Client.IO;
 using Kafka.Client.Utils;
 
@@ -40,16 +42,30 @@ namespace Kafka.Client.Api
 		public Message(IRandomAccessReadBuffer buffer)
 		{
 			_buffer = buffer;
-			_valueSizeOffset = _KeyOffset + Math.Max(KeySize, 0);
+			_valueSizeOffset = _KeyOffset + Math.Max(KeySize,0);
 		}
 
-		public bool HasKey { get { return Key.Count > 0; } }
+		public bool HasKey { get { return KeySize >= 0; } }
 
-		public int KeySize { get { return _buffer.ReadInt(_KeySizeOffset); } }
-		public ArraySegment<byte> Key { get { return _buffer.ReadByteArraySegment(_KeyOffset, KeySize); } }
+		public int KeySize { get { return Math.Max(_buffer.ReadInt(_KeySizeOffset), -1); } }
+		public ArraySegment<byte>? Key { get { return SliceOfSegment(_KeySizeOffset); } }
 
-		public int ValueSize { get { return _buffer.ReadInt(_valueSizeOffset); } }
-		public ArraySegment<byte> Value { get { return _buffer.ReadByteArraySegment(_valueSizeOffset + BitConversion.IntSize, ValueSize); } }
+		public int ValueSize { get
+		{
+			var readInt = _buffer.ReadInt(_valueSizeOffset);
+			return Math.Max(readInt, -1);
+		}
+		}
+
+		public ArraySegment<byte>? Value { get { return SliceOfSegment(_valueSizeOffset); } }
+
+		private ArraySegment<byte>? SliceOfSegment(int offset)
+		{
+			var size = _buffer.ReadInt(offset);
+
+			return size < 0 ? (ArraySegment<byte>?)null : _buffer.ReadByteArraySegment(offset + BitConversion.IntSize, size);
+		}
+
 		public byte Magic { get { return _buffer.ReadByte(_MagicOffset); } }
 		public byte Attributes { get { return _buffer.ReadByte(_AttributesOffset); } }
 		public uint Checksum { get { return _buffer.ReadUInt(_CrcOffset); } }
@@ -57,14 +73,83 @@ namespace Kafka.Client.Api
 
 		public uint ComputeChecksum()
 		{
-			var segment = _buffer.GetAsArraySegment();
-			var checksum = Crc32.Compute(segment.Array, segment.Offset + BitConversion.IntSize, segment.Count - BitConversion.IntSize);
+			var buffer = _buffer;
+			return ComputeChecksum(buffer);
+		}
+
+		private static uint ComputeChecksum(IRandomAccessReadBuffer readBuffer)
+		{
+			var segment = readBuffer.GetAsArraySegment();
+			var checksum = ComputeChecksum(segment.Array, segment.Offset, segment.Count);
 			return checksum;
+		}
+
+		private static uint ComputeChecksum(byte[] buffer)
+		{
+			return ComputeChecksum(buffer, 0, buffer.Length);
+		}
+
+		private static uint ComputeChecksum(byte[] buffer, int offset, int length)
+		{
+			var checksum = Crc32.Compute(buffer, offset + BitConversion.IntSize, length - BitConversion.IntSize);
+			return checksum;
+		}
+
+		int IKafkaRequestPart.GetSize()
+		{
+			return _buffer.Count;
+		}
+
+		void IKafkaRequestPart.WriteTo(KafkaWriter writer)
+		{
+			writer.WriteRaw(_buffer);
 		}
 
 		public static Message Deserialize(IReadBuffer readBuffer, int messageSize)
 		{
 			return new Message(readBuffer.GetRandomAccessReadBuffer(messageSize));
+		}
+
+		public static Message Create(byte[] value)
+		{
+			return Create((byte[])null, value);
+		}
+
+		public static Message Create(string key, byte[] value)
+		{
+			var keyBytes = key == null ? null : Encoding.UTF8.GetBytes(key);
+			return Create(keyBytes, value);
+		}
+
+		public static Message Create(byte[] key, byte[] value)
+		{
+			var size = CalculateMessageSize(key, value);
+			var buffer = new byte[size];
+			var stream = new MemoryStream(buffer);
+			var writer = new KafkaBinaryWriter(stream);
+			writer.WriteUInt(0);    //CRC, will receive it's correct value below
+			writer.WriteByte(0);    //MagicByte
+			writer.WriteByte(0);    //Attributes
+			writer.WriteVariableBytes(key);
+			writer.WriteVariableBytes(value);
+			var crc = ComputeChecksum(buffer);
+			stream.Seek(0, SeekOrigin.Begin);
+			writer.WriteUInt(crc);     //CRC
+			var m = new Message(new RandomAccessReadBuffer(buffer));
+			return m;
+		}
+
+		private static int CalculateMessageSize(byte[] key, byte[] value)
+		{
+			var keyLength = (key == null ? 0 : key.Length);
+			var valueLength = (value == null ? 0 : value.Length);
+			return BitConversion.IntSize +  //CRC
+						 BitConversion.ByteSize + //Magic Byte
+						 BitConversion.ByteSize + //Attributes
+						 BitConversion.IntSize +  //Key Size
+						 keyLength +              //Key #Bytes
+						 BitConversion.IntSize +  //Value Size
+						 valueLength;             //Value #Bytes
 		}
 	}
 }

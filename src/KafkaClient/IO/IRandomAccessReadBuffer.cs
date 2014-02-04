@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 namespace Kafka.Client.IO
 {
@@ -15,5 +16,6 @@ namespace Kafka.Client.IO
 		ArraySegment<byte> ReadByteArraySegment(int position, int size);
 		int Count { get; }
 		ArraySegment<byte> GetAsArraySegment();
+		void WriteTo(Stream stream);
 	}
 }

@@ -44,6 +44,15 @@ namespace Kafka.Client.IO
 			_binaryWriter = binaryWriter;
 		}
 
+			/// <summary>
+		/// Writes one byte to the current stream 
+		/// and advances the stream position by one byte
+		/// </summary>
+		public override void WriteByte(byte b)
+		{
+			_binaryWriter.Write(b);
+		}
+
 		/// <summary>
 		/// Writes two-bytes signed integer to the current stream using big endian bytes order 
 		/// and advances the stream position by two bytes
@@ -66,6 +75,17 @@ namespace Kafka.Client.IO
 			NumberOfWrittenBytes += BitConversion.IntSize;
 		}
 
+
+		/// <summary>
+		/// Writes four-bytes unsigned integer to the current stream using big endian bytes order 
+		/// and advances the stream position by four bytes
+		/// </summary>
+		public void WriteUInt(uint value)
+		{
+			var bytes = BitConversion.GetBigEndianBytes(value);
+			_binaryWriter.Write(bytes, 0, BitConversion.IntSize);
+			NumberOfWrittenBytes += BitConversion.IntSize;
+		}
 		/// <summary>
 		/// Writes eight-bytes signed integer to the current stream using big endian bytes order 
 		/// and advances the stream position by eight bytes
@@ -169,10 +189,16 @@ namespace Kafka.Client.IO
 			}
 		}
 
+		public override void WriteRaw(IRandomAccessReadBuffer buffer)
+		{
+			buffer.WriteTo(_binaryWriter.BaseStream);
+		}
+
 		public override void Dispose()
 		{
 			_binaryWriter.Flush();
 			_binaryWriter.Dispose();
 		}
+
 	}
 }

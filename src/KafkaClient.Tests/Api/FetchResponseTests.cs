@@ -58,18 +58,18 @@ namespace KafkaClient.Tests.Api
 			var firstMessage = data.Value.Messages[0];
 			firstMessage.Offset.ShouldBe(0x1112131421222324);
 			firstMessage.Message.HasKey.ShouldBeTrue();
-			firstMessage.Message.Key.Count.ShouldBe(1);
-			firstMessage.Message.Key.Array[firstMessage.Message.Key.Offset].ShouldBe((byte)'K');
-			firstMessage.Message.Value.Count.ShouldBe(1);
-			firstMessage.Message.Value.Array[firstMessage.Message.Value.Offset].ShouldBe((byte)'V');
+			firstMessage.Message.Key.Value.Count.ShouldBe(1);
+			firstMessage.Message.Key.Value.Array[firstMessage.Message.Key.Value.Offset].ShouldBe((byte)'K');
+			firstMessage.Message.Value.Value.Count.ShouldBe(1);
+			firstMessage.Message.Value.Value.Array[firstMessage.Message.Value.Value.Offset].ShouldBe((byte)'V');
 			var secondMessage = data.Value.Messages[1];
 			secondMessage.Offset.ShouldBe(0x1213141526272829);
 			secondMessage.Message.HasKey.ShouldBeFalse();
-			secondMessage.Message.Key.Count.ShouldBe(0);
-			secondMessage.Message.Value.Count.ShouldBe(3);
-			secondMessage.Message.Value.Array[secondMessage.Message.Value.Offset].ShouldBe((byte)'H');
-			secondMessage.Message.Value.Array[secondMessage.Message.Value.Offset + 1].ShouldBe((byte)'i');
-			secondMessage.Message.Value.Array[secondMessage.Message.Value.Offset + 2].ShouldBe((byte)'!');
+			secondMessage.Message.Key.ShouldBeNull();
+			secondMessage.Message.Value.Value.Count.ShouldBe(3);
+			secondMessage.Message.Value.Value.Array[secondMessage.Message.Value.Value.Offset].ShouldBe((byte)'H');
+			secondMessage.Message.Value.Value.Array[secondMessage.Message.Value.Value.Offset + 1].ShouldBe((byte)'i');
+			secondMessage.Message.Value.Value.Array[secondMessage.Message.Value.Value.Offset + 2].ShouldBe((byte)'!');
 		}
 	}
 }

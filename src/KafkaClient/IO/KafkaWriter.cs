@@ -45,6 +45,7 @@ namespace Kafka.Client.IO
 		public abstract void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T> writeItem);
 		public abstract void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T, int> writeItem);
 
+		public abstract void WriteRaw(IRandomAccessReadBuffer buffer);
 		public abstract void WriteVariableBytes(byte[] bytes);
 
 		public static int GetShortStringLength(string s)
@@ -61,5 +62,11 @@ namespace Kafka.Client.IO
 		{
 			return BitConversion.IntSize + (items == null ? 0 : items.Sum(calculateSizePerItem));
 		}
+
+		/// <summary>
+		/// Writes one byte to the current stream 
+		/// and advances the stream position by one byte
+		/// </summary>
+		public abstract void WriteByte(byte b);
 	}
 }

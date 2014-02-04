@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
+using Xunit.Sdk;
 
 // ReSharper disable once CheckNamespace
 namespace Xunit.Should
@@ -17,16 +19,61 @@ namespace Xunit.Should
 			Assert.Contains(str, self, comparison);
 		}
 
-		public static void ShouldOnlyContainInOrder<T>(this IEnumerable<T> series, params T[] items)
+		private static string FormatSequence<T>(IEnumerable<T> seq, int markerIndex, string separator = ", ", string markerStart = "-->", string markerEnd = "<--", int maxLength = 100)
 		{
-			var i = 0;
-			foreach(var item in series)
+			var sb = new StringBuilder("{");
+			if(seq == null) return "<null>";
+			var enumerator = seq.GetEnumerator();
+			var index = 0;
+			while(index < maxLength && enumerator.MoveNext())
 			{
-				Assert.Equal(item, items[i]);
+				if(index > 0)
+					sb.Append(separator);
+				if(index == markerIndex)
+				{
+					sb.Append(markerStart);
+					sb.Append(enumerator.Current);
+					sb.Append(markerEnd);
+				}
+				else
+					sb.Append(enumerator.Current);
+				index++;
+			}
+			if(index == markerIndex)
+			{
+				sb.Append(markerStart);
+				sb.Append(' ');
+				sb.Append(markerEnd);
+			}
+			sb.Append('}');
+			return sb.ToString();
+		}
+
+		public static void ShouldOnlyContainInOrder<T>(this IEnumerable<T> actual, params T[] expected)
+		{
+			Func<string, int, string> errorFormat = (msg, index) =>
+				string.Format("{3}First difference is at index={2}. {4}Expected: {0}{4}Actual: {1}", FormatSequence(expected, index), FormatSequence(actual, index), index, msg==null ? "": msg+Environment.NewLine, Environment.NewLine);
+			
+			var i = 0;
+			var lastIndex = expected.Length - 1;
+			foreach(var item in actual)
+			{
+				if(i > lastIndex)
+				{
+					throw new Exception(errorFormat(string.Format("Expected {0} items but actually have more items.",expected.Length),i));
+				}
+				try
+				{
+					Assert.Equal(expected[i], item);
+				}
+				catch(EqualException e)
+				{
+					throw new Exception(errorFormat(null, i));
+				}
 				i++;
 			}
-			if(items.Length != i)
-				throw new Exception(string.Format("Expected {0} items but only have {1}:\nExpected: {2}\nActual: {3}", items.Length, i, string.Join(", ", items), string.Join(", ", series)));
+			if(expected.Length != i)
+				throw new Exception(errorFormat(string.Format("Expected {0} items but only have {1} items.", expected.Length, i), i));
 		}
 
 		public static void ShouldContain<T>(this IEnumerable<T> series, T item)
@@ -50,7 +97,7 @@ namespace Xunit.Should
 		{
 			ShouldContainKeys(dictionary, expectedKeys);
 			var actualCount = dictionary.Count;
-			Assert.True(actualCount==expectedKeys.Length,string.Format("Expected dictionary to contain only a set of keys.\nExpected: {0} itesm\nActual:   {1} items", expectedKeys.Length, actualCount));
+			Assert.True(actualCount == expectedKeys.Length, string.Format("Expected dictionary to contain only a set of keys.\nExpected: {0} itesm\nActual:   {1} items", expectedKeys.Length, actualCount));
 		}
 
 		public static void ShouldNotContain(this string self, string str)
@@ -231,6 +278,22 @@ namespace Xunit.Should
 		public static void ShouldHaveCount<T>(this IReadOnlyCollection<T> collection, int count)
 		{
 			Assert.Equal(count, collection.Count);
+		}
+
+
+		public static void ShouldNotHaveValue<T>(this T? actual) where T : struct
+		{
+			Assert.False(actual.HasValue,"Expected nullable to be null");
+		}
+
+		public static void ShouldHaveValue<T>(this T? actual) where T : struct
+		{
+			Assert.True(actual.HasValue, "Expected nullable to have a value");
+		}
+
+		public static void ShouldHaveValue<T>(this T? actual, T expected) where T : struct
+		{
+			Assert.Equal(actual.Value,expected);
 		}
 	}
 }

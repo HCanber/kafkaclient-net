@@ -49,6 +49,19 @@ namespace Kafka.Client.Utils
 		/// </summary>
 		/// <param name="value">The value to convert to bytes.</param>
 		/// <returns>Bytes representing the value.</returns>
+		public static byte[] GetBigEndianBytes(uint value)
+		{
+			var bytes = BitConverter.GetBytes(value);
+			if(_SystemIsLittleEndian)
+				ReverseBytes(bytes, 0, IntSize);
+			return bytes;
+		}
+
+		/// <summary>
+		/// Converts the value to bytes in big endian order.
+		/// </summary>
+		/// <param name="value">The value to convert to bytes.</param>
+		/// <returns>Bytes representing the value.</returns>
 		public static byte[] GetBigEndianBytes(long value)
 		{
 			var bytes = BitConverter.GetBytes(value);
