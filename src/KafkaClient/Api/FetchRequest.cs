@@ -61,19 +61,19 @@ namespace Kafka.Client.Api
 						var topic = grp.Key;
 						var partitionFetchInfos = grp.ToList();
 						return KafkaWriter.GetShortStringLength(topic) +
-						       KafkaWriter.GetArraySize(partitionFetchInfos, info =>
-							       intSize + //PartitionId
-							       longSize + //Offset
-							       intSize //Fetch size
-							       );
+									 KafkaWriter.GetArraySize(partitionFetchInfos, info =>
+										 intSize + //PartitionId
+										 longSize + //Offset
+										 intSize //Fetch size
+										 );
 					});
 
 			}
 		}
 
-		public static FetchRequest CreateSingleRequest(string topic, int partition, long offset, int fetchSize, int minBytes=DefaultMinBytes, int maxWait=DefaultMaxWait)
+		public static FetchRequest CreateSingleRequest(string topic, int partition, long offset, int fetchSize, int minBytes = DefaultMinBytes, int maxWait = DefaultMaxWait)
 		{
-			return new FetchRequest(new []{new KeyValuePair<TopicAndPartition, PartitionFetchInfo>(
+			return new FetchRequest(new[]{new KeyValuePair<TopicAndPartition, PartitionFetchInfo>(
 					new TopicAndPartition(topic,partition),
 					new PartitionFetchInfo(offset,fetchSize) ) },
 				minBytes,
