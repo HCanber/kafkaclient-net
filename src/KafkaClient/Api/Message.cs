@@ -42,7 +42,43 @@ namespace Kafka.Client.Api
 		public Message(IRandomAccessReadBuffer buffer)
 		{
 			_buffer = buffer;
-			_valueSizeOffset = _KeyOffset + Math.Max(KeySize,0);
+			_valueSizeOffset = _KeyOffset + Math.Max(KeySize, 0);
+		}
+
+		public Message(string value)
+			: this((byte[])null, value == null ? null : Encoding.UTF8.GetBytes(value))
+		{
+		}
+
+		public Message(byte[] value)
+			: this((byte[])null, value)
+		{
+		}
+
+		public Message(string key, string value) 
+			: this(key == null ? null : Encoding.UTF8.GetBytes(key), value == null ? null : Encoding.UTF8.GetBytes(value)) 
+		{ }
+
+		public Message(string key, byte[] value) 
+			: this(key == null ? null : Encoding.UTF8.GetBytes(key), value) 
+		{ }
+
+		public Message(byte[] key, byte[] value)
+		{
+			var size = CalculateMessageSize(key, value);
+			var buffer = new byte[size];
+			var stream = new MemoryStream(buffer);
+			var writer = new KafkaBinaryWriter(stream);
+			writer.WriteUInt(0);    //CRC, will receive it's correct value below
+			writer.WriteByte(0);    //MagicByte
+			writer.WriteByte(0);    //Attributes
+			writer.WriteVariableBytes(key);
+			writer.WriteVariableBytes(value);
+			var crc = ComputeChecksum(buffer);
+			stream.Seek(0, SeekOrigin.Begin);
+			writer.WriteUInt(crc);     //CRC
+			_buffer = new RandomAccessReadBuffer(buffer);
+			_valueSizeOffset = _KeyOffset + Math.Max(KeySize, 0);
 		}
 
 		public bool HasKey { get { return KeySize >= 0; } }
@@ -50,11 +86,13 @@ namespace Kafka.Client.Api
 		public int KeySize { get { return Math.Max(_buffer.ReadInt(_KeySizeOffset), -1); } }
 		public ArraySegment<byte>? Key { get { return SliceOfSegment(_KeySizeOffset); } }
 
-		public int ValueSize { get
+		public int ValueSize
 		{
-			var readInt = _buffer.ReadInt(_valueSizeOffset);
-			return Math.Max(readInt, -1);
-		}
+			get
+			{
+				var readInt = _buffer.ReadInt(_valueSizeOffset);
+				return Math.Max(readInt, -1);
+			}
 		}
 
 		public ArraySegment<byte>? Value { get { return SliceOfSegment(_valueSizeOffset); } }
@@ -108,35 +146,6 @@ namespace Kafka.Client.Api
 		public static Message Deserialize(IReadBuffer readBuffer, int messageSize)
 		{
 			return new Message(readBuffer.GetRandomAccessReadBuffer(messageSize));
-		}
-
-		public static Message Create(byte[] value)
-		{
-			return Create((byte[])null, value);
-		}
-
-		public static Message Create(string key, byte[] value)
-		{
-			var keyBytes = key == null ? null : Encoding.UTF8.GetBytes(key);
-			return Create(keyBytes, value);
-		}
-
-		public static Message Create(byte[] key, byte[] value)
-		{
-			var size = CalculateMessageSize(key, value);
-			var buffer = new byte[size];
-			var stream = new MemoryStream(buffer);
-			var writer = new KafkaBinaryWriter(stream);
-			writer.WriteUInt(0);    //CRC, will receive it's correct value below
-			writer.WriteByte(0);    //MagicByte
-			writer.WriteByte(0);    //Attributes
-			writer.WriteVariableBytes(key);
-			writer.WriteVariableBytes(value);
-			var crc = ComputeChecksum(buffer);
-			stream.Seek(0, SeekOrigin.Begin);
-			writer.WriteUInt(crc);     //CRC
-			var m = new Message(new RandomAccessReadBuffer(buffer));
-			return m;
 		}
 
 		private static int CalculateMessageSize(byte[] key, byte[] value)

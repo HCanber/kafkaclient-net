@@ -46,7 +46,7 @@ namespace Kafka.Client.Api
 		{
 			var writer = new KafkaBinaryWriter(stream);
 			WriteTo(writer,clientId,correlationId);
-			Debug.Assert(writer.NumberOfWrittenBytes == GetSize(clientId));
+			Debug.Assert(writer.NumberOfWrittenBytes == GetSize(clientId), "Did not write the expected number of bytes.", "Expected:  {0}\nActual:    {1}", GetSize(clientId), writer.NumberOfWrittenBytes);
 		}
 	}
 }

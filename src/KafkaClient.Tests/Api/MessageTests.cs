@@ -64,7 +64,7 @@ namespace KafkaClient.Tests.Api
 			var key = (string)null;
 			var msg = new byte[] { 0x48, 0x69, 0x21 };	//Hi!
 
-			var message = Message.Create(key, msg);
+			var message = new Message(key, msg);
 			message.HasKey.ShouldBeFalse();
 			message.KeySize.ShouldBe(-1);
 			message.Key.ShouldBeNull();
@@ -93,7 +93,7 @@ namespace KafkaClient.Tests.Api
 			var key = new byte[] { 0x4B };              //K
 			var msg = new byte[] { 0x48, 0x69, 0x21 };  //Hi!
 
-			var message = Message.Create(key, msg);
+			var message = new Message(key, msg);
 			message.HasKey.ShouldBeTrue();
 			message.KeySize.ShouldBe(1);
 			message.Key.ShouldHaveValue();
@@ -133,7 +133,7 @@ namespace KafkaClient.Tests.Api
 			var key = new byte[] { 0x4B };              //K
 			var msg = (byte[])null;
 
-			var message = Message.Create(key, msg);
+			var message = new Message(key, msg);
 			message.HasKey.ShouldBeTrue();
 			message.KeySize.ShouldBe(1);
 			message.Key.ShouldHaveValue();
@@ -172,7 +172,7 @@ namespace KafkaClient.Tests.Api
 			var key = (byte[])null; 
 			var msg = (byte[])null;
 
-			var message = Message.Create(key, msg);
+			var message = new Message(key, msg);
 			message.HasKey.ShouldBeFalse();
 			message.KeySize.ShouldBe(-1);
 			message.Key.ShouldBeNull();

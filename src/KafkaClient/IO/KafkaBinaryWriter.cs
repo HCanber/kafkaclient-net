@@ -192,6 +192,7 @@ namespace Kafka.Client.IO
 		public override void WriteRaw(IRandomAccessReadBuffer buffer)
 		{
 			buffer.WriteTo(_binaryWriter.BaseStream);
+			NumberOfWrittenBytes += buffer.Count;
 		}
 
 		public override void Dispose()

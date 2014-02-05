@@ -45,6 +45,9 @@
     <Reference Include="xunit">
       <HintPath>..\..\..\src\packages\xunit.1.9.2\lib\net20\xunit.dll</HintPath>
     </Reference>
+    <Reference Include="xunit.extensions">
+      <HintPath>..\..\..\src\packages\xunit.extensions.1.9.2\lib\net20\xunit.extensions.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\BrokerTests.cs" />
@@ -52,6 +55,8 @@
     <Compile Include="Api\FetchResponseTests.cs" />
     <Compile Include="Api\MessageTests.cs" />
     <Compile Include="Api\PartitionMetadataTests.cs" />
+    <Compile Include="Api\MessagePartsValidator.cs" />
+    <Compile Include="Api\ProduceRequestTests.cs" />
     <Compile Include="Api\TopicMetadataRequestTests.cs" />
     <Compile Include="Api\TopicMetadataResponseTests.cs" />
     <Compile Include="Api\TopicMetadataTests.cs" />
@@ -66,7 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\KafkaClient\KafkaClient.csproj">
-      <Project>{B3705D7F-C68F-49A9-9A6B-F3F53EF8E8FE}</Project>
+      <Project>{b3705d7f-c68f-49a9-9a6b-f3f53ef8e8fe}</Project>
       <Name>KafkaClient</Name>
     </ProjectReference>
   </ItemGroup>

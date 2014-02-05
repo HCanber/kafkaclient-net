@@ -1,17 +1,18 @@
+using System.IO;
 using Common.Logging;
 using Kafka.Client.IO;
 using Kafka.Client.Utils;
 
 namespace Kafka.Client.Api
 {
-	public class MessageSetItem : IMessageSetItem
+	public class MessageSetItem : IMessageSetItem, IKafkaRequestPart
 	{
 		private static readonly ILog _Logger = LogManager.GetCurrentClassLogger();
 
 		private readonly long _offset;
 		private readonly IMessage _message;
 
-		private MessageSetItem(long offset, IMessage message)
+		public MessageSetItem(long offset, IMessage message)
 		{
 			_offset = offset;
 			_message = message;
@@ -34,6 +35,20 @@ namespace Kafka.Client.Api
 				return BitConversion.LongSize +	//Offset
 				       BitConversion.IntSize;   //Message Size-field
 			}
+		}
+
+		public int GetSize()
+		{
+			return BitConversion.LongSize + //Offset
+			       BitConversion.IntSize +   //Message Size-field
+			       _message.GetSize();
+		}
+
+		public void WriteTo(KafkaWriter writer)
+		{
+			writer.WriteLong(_offset);
+			writer.WriteInt(_message.GetSize());
+			_message.WriteTo(writer);
 		}
 
 		public static MessageSetItem Deserialize(IReadBuffer readBuffer)

@@ -48,6 +48,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\Broker.cs" />
+    <Compile Include="Api\TopicItem.cs" />
+    <Compile Include="Api\PartitionItem.cs" />
+    <Compile Include="Api\ProduceRequest.cs" />
     <Compile Include="IMessage.cs" />
     <Compile Include="IMessageSetItem.cs" />
     <Compile Include="Api\KafkaRequestExtensions.cs" />
