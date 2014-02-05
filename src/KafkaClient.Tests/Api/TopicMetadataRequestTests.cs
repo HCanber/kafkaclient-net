@@ -18,12 +18,10 @@ namespace KafkaClient.Tests.Api
 			                   4;                    //Topics size
 			
 			bytes.ShouldHaveLength(expectedSize);
-			bytes.GetShortFromBigEndianBytes(0).ShouldBe<short>(3);	//ApiKey=MetadataRequest
-			bytes.GetShortFromBigEndianBytes(2).ShouldBe<short>(0);	//ApiVersion
-			bytes.GetIntFromBigEndianBytes(4).ShouldBe(4711);	//CorrelationId
-			bytes.GetShortFromBigEndianBytes(8).ShouldBe((short)"client".Length);	//ClientId string length
-			bytes.ShouldBeString(10, "client"); 	//ClientId string
-			bytes.GetIntFromBigEndianBytes(16).ShouldBe(0);	//Number of topics
+			var index = 0;
+			bytes.ShouldMatchRequestMessageHeader(ref index, 4711, "client", RequestApiKeys.Metadata);
+
+			bytes.GetInt(ref index).ShouldBe(0);	//Number of topics
 		}
 
 		[Fact]
@@ -36,14 +34,11 @@ namespace KafkaClient.Tests.Api
 			                   4 + (2 + 5);          //Topics size + String_Topic
 			
 			bytes.ShouldHaveLength(expectedSize);
-			bytes.GetShortFromBigEndianBytes(0).ShouldBe<short>(3);	//ApiKey=MetadataRequest
-			bytes.GetShortFromBigEndianBytes(2).ShouldBe<short>(0);	//ApiVersion
-			bytes.GetIntFromBigEndianBytes(4).ShouldBe(4711);	//CorrelationId
-			bytes.GetShortFromBigEndianBytes(8).ShouldBe<short>((short)"client".Length);	//ClientId string length
-			bytes.ShouldBeString(10, "client");	//ClientId string
-			bytes.GetIntFromBigEndianBytes(16).ShouldBe(1);	//Number of topics
-			bytes.GetShortFromBigEndianBytes(20).ShouldBe<short>((short)"topic".Length);	//Topic string length
-			bytes.ShouldBeString(22, "topic");	//topic string
+			var index = 0;
+			bytes.ShouldMatchRequestMessageHeader(ref index, 4711, "client", RequestApiKeys.Metadata);
+
+			bytes.GetInt(ref index).ShouldBe(1);	//Number of topics
+			bytes.ShouldBeShortString(ref index, "topic");	//topic string
 		}
 
 
@@ -57,16 +52,13 @@ namespace KafkaClient.Tests.Api
 			                   4 + (2 + 6) + (2 + 7);          //Topics size + String_Topic
 
 			bytes.ShouldHaveLength(expectedSize);
-			bytes.GetShortFromBigEndianBytes(0).ShouldBe<short>(3);	//ApiKey=MetadataRequest
-			bytes.GetShortFromBigEndianBytes(2).ShouldBe<short>(0);	//ApiVersion
-			bytes.GetIntFromBigEndianBytes(4).ShouldBe(4711);	//CorrelationId
-			bytes.GetShortFromBigEndianBytes(8).ShouldBe<short>((short)"client".Length);	//ClientId string length
-			bytes.ShouldBeString(10, "client");	//ClientId string
-			bytes.GetIntFromBigEndianBytes(16).ShouldBe(2);	//Number of topics
-			bytes.GetShortFromBigEndianBytes(20).ShouldBe<short>((short)"topic1".Length);	//Topic string length
-			bytes.ShouldBeString(22, "topic1");	//topic string
-			bytes.GetShortFromBigEndianBytes(28).ShouldBe<short>((short)"topic 2".Length);	//Topic string length
-			bytes.ShouldBeString(30, "topic 2");	//topic string
+
+			var index = 0;
+			bytes.ShouldMatchRequestMessageHeader(ref index, 4711, "client", RequestApiKeys.Metadata);
+
+			bytes.GetInt(ref index).ShouldBe(2);	//Number of topics
+			bytes.ShouldBeShortString(ref index, "topic1");	//topic string
+			bytes.ShouldBeShortString(ref index, "topic 2");	//topic string
 		}
 	}
 }

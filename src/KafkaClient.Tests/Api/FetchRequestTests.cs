@@ -22,16 +22,15 @@ namespace KafkaClient.Tests.Api
 			var index = 0;
 			bytes.ShouldMatchRequestMessageHeader(ref index, 4711, "client", RequestApiKeys.Fetch);
 
-			bytes.GetIntFromBigEndianBytes(16).ShouldBe(-1);	//ReplicaId=No node id
-			bytes.GetIntFromBigEndianBytes(20).ShouldBe(456);	//MaxWaitTime
-			bytes.GetIntFromBigEndianBytes(24).ShouldBe(123);	//MinBytes
-			bytes.GetIntFromBigEndianBytes(28).ShouldBe(1);	  //Array size for Topics
-			bytes.GetShortFromBigEndianBytes(32).ShouldBe<short>(4);	//Topic string length "test"
-			bytes.ShouldBeString(34, "test");                   //Topic
-			bytes.GetIntFromBigEndianBytes(38).ShouldBe(1);	    //Array size for Partitions
-			bytes.GetIntFromBigEndianBytes(42).ShouldBe(42);	  //Partition
-			bytes.GetLongFromBigEndianBytes(46).ShouldBe(4711); //Offset
-			bytes.GetIntFromBigEndianBytes(54).ShouldBe(100);	  //MaxBytes, FetchSize
+			bytes.GetInt(ref index).ShouldBe(-1);	//ReplicaId=No node id
+			bytes.GetInt(ref index).ShouldBe(456);	//MaxWaitTime
+			bytes.GetInt(ref index).ShouldBe(123);	//MinBytes
+			bytes.GetInt(ref index).ShouldBe(1);	  //Array size for Topics
+			bytes.ShouldBeShortString(ref index, "test");                   //Topic
+			bytes.GetInt(ref index).ShouldBe(1);	    //Array size for Partitions
+			bytes.GetInt(ref index).ShouldBe(42);	  //Partition
+			bytes.GetLong(ref index).ShouldBe(4711); //Offset
+			bytes.GetInt(ref index).ShouldBe(100);	  //MaxBytes, FetchSize
 		}
 	}
 }
