@@ -86,7 +86,7 @@
     <Compile Include="Network\IKafkaConnection.cs" />
     <Compile Include="Network\KafkaConnection.cs" />
     <Compile Include="Exceptions\PartitionUnavailableException.cs" />
-    <Compile Include="PayloadForTopicAndPartition.cs" />
+    <Compile Include="TopicAndPartitionValue.cs" />
     <Compile Include="SimpleConsumer.cs" />
     <Compile Include="SynchronousProducer.cs" />
     <Compile Include="Utils\BitConversion.cs" />

@@ -52,12 +52,12 @@ namespace Kafka.Client
 				var partitionsToGet = offsetsPerPartition.Keys.ToList();
 				while(partitionsToGet.Count>0)
 				{
-					IReadOnlyCollection<PayloadForTopicAndPartition<long>> failedItems;
+					IReadOnlyCollection<TopicAndPartitionValue<long>> failedItems;
 					var partitionAndOffsets = partitionsToGet.Select(p=>new KeyValuePair<int,long>(p,offsetsPerPartition[p]));
 					var responses = FetchMessages(_topic, partitionAndOffsets, out failedItems,fetchMaxBytes: _fetchSizeBytes, maxWaitForMessagesInMs: _maxWaitTimeInMs);
 					partitionsToGet.Clear();
 					if(failedItems!=null && failedItems.Count>0)
-						throw new FetchFailed(failedItems.Select(p => Tuple.Create(p.TopicAndPartition, (FetchResponsePartitionData)null)).ToList(), "Failures occurred when fetching partitions and offsets: " + string.Join(", ", failedItems.Select(t => t.TopicAndPartition + ":" + t.Payload)));
+						throw new FetchFailed(failedItems.Select(p => Tuple.Create(p.TopicAndPartition, (FetchResponsePartitionData)null)).ToList(), "Failures occurred when fetching partitions and offsets: " + string.Join(", ", failedItems.Select(t => t.TopicAndPartition + ":" + t.Value)));
 
 					var errorResponses = responses.SelectMany(r => r.Data).Where(kvp => kvp.Value.HasError).Select(kvp => Tuple.Create(kvp.Key, kvp.Value)).ToList();
 					if(errorResponses.Count > 0)

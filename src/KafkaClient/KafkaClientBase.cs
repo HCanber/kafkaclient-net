@@ -115,11 +115,11 @@ namespace Kafka.Client
 			}
 		}
 
-		protected List<TResponse> SendRequestToLeader<TPayload, TResponse>(IEnumerable<PayloadForTopicAndPartition<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyCollection<PayloadForTopicAndPartition<TPayload>> failedItems)
+		protected List<TResponse> SendRequestToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyCollection<TopicAndPartitionValue<TPayload>> failedItems)
 		{
 			var payloadsByBroker = GroupPayloadsByBroker<TPayload>(payloads);
 
-			var failed = new List<PayloadForTopicAndPartition<TPayload>>();
+			var failed = new List<TopicAndPartitionValue<TPayload>>();
 			var responses = new List<TResponse>();
 			foreach(var kvp in payloadsByBroker)
 			{
@@ -143,7 +143,7 @@ namespace Kafka.Client
 			return responses;
 		}
 
-		private Dictionary<Broker, IReadOnlyCollection<PayloadForTopicAndPartition<TPayload>>> GroupPayloadsByBroker<TPayload>(IEnumerable<PayloadForTopicAndPartition<TPayload>> payloads)
+		private Dictionary<Broker, IReadOnlyCollection<TopicAndPartitionValue<TPayload>>> GroupPayloadsByBroker<TPayload>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads)
 		{
 			var payloadsByBroker = payloads.GroupByToReadOnlyCollectionDictionary(payload =>
 			{

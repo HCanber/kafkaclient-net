@@ -2,15 +2,15 @@
 
 namespace Kafka.Client
 {
-	public class PayloadForTopicAndPartition<T>
+	public class TopicAndPartitionValue<T>
 	{
 		private readonly TopicAndPartition _topicAndPartition;
-		private readonly T _payload;
+		private readonly T _value;
 
-		public PayloadForTopicAndPartition(TopicAndPartition topicAndPartition, T payload)
+		public TopicAndPartitionValue(TopicAndPartition topicAndPartition, T value)
 		{
 			_topicAndPartition = topicAndPartition;
-			_payload = payload;
+			_value = value;
 		}
 
 		public TopicAndPartition TopicAndPartition
@@ -18,9 +18,9 @@ namespace Kafka.Client
 			get { return _topicAndPartition; }
 		}
 
-		public T Payload
+		public T Value
 		{
-			get { return _payload; }
+			get { return _value; }
 		}
 	}
 }

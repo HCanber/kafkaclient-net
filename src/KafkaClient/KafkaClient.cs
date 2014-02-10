@@ -103,7 +103,7 @@ namespace Kafka.Client
 			return SendMetadataRequest(topics).TopicMetadatas;
 		}
 
-		public IReadOnlyCollection<TResponse> SendToLeader<TPayload, TResponse>(IEnumerable<PayloadForTopicAndPartition<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyCollection<PayloadForTopicAndPartition<TPayload>> failedItems)
+		public IReadOnlyCollection<TResponse> SendToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyCollection<TopicAndPartitionValue<TPayload>> failedItems)
 		{
 			return SendRequestToLeader(payloads, requestBuilder, responseDeserializer, out failedItems);
 		}
