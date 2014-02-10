@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Xunit.Sdk;
 
@@ -278,6 +279,11 @@ namespace Xunit.Should
 		public static void ShouldHaveCount<T>(this IReadOnlyCollection<T> collection, int count)
 		{
 			Assert.Equal(count, collection.Count);
+		}
+
+		public static void ShouldHaveCount<T>(this IEnumerable<T> collection, int count)
+		{
+			Assert.Equal(count, collection.Count());
 		}
 
 

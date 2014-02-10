@@ -48,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Api\Broker.cs" />
+    <Compile Include="Api\ProduceResponse.cs" />
     <Compile Include="Api\TopicItem.cs" />
     <Compile Include="Api\PartitionItem.cs" />
     <Compile Include="Api\ProduceRequest.cs" />

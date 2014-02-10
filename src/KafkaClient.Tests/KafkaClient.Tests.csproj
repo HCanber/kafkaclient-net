@@ -57,6 +57,7 @@
     <Compile Include="Api\PartitionMetadataTests.cs" />
     <Compile Include="Api\MessagePartsValidator.cs" />
     <Compile Include="Api\ProduceRequestTests.cs" />
+    <Compile Include="Api\ProduceResponseTests.cs" />
     <Compile Include="Api\TopicMetadataRequestTests.cs" />
     <Compile Include="Api\TopicMetadataResponseTests.cs" />
     <Compile Include="Api\TopicMetadataTests.cs" />
