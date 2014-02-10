@@ -21,13 +21,13 @@ namespace Kafka.Client.Api
 		private readonly int _ackTimeoutMs;
 		private List<TopicItem<List<PartitionItem<List<MessageSetItem>>>>> _topicItems;
 
-		public ProduceRequest(IEnumerable<KeyValuePair<TopicAndPartition, IEnumerable<Message>>> messagesForPartitions, RequiredAck requiredAcks = RequiredAck.WrittenToDiskByLeader, int ackTimeoutMs = 1000)
+		public ProduceRequest(IEnumerable<KeyValuePair<TopicAndPartition, IEnumerable<IMessage>>> messagesForPartitions, RequiredAck requiredAcks = RequiredAck.WrittenToDiskByLeader, int ackTimeoutMs = 1000)
 			: this(messagesForPartitions,(short)requiredAcks,ackTimeoutMs)
 		{
 			//Intentionally left blank
 		}
 
-		public ProduceRequest([NotNull] IEnumerable<KeyValuePair<TopicAndPartition, IEnumerable<Message>>> messagesForPartitions, short requiredAcks, int ackTimeoutMs = 1000)
+		public ProduceRequest([NotNull] IEnumerable<KeyValuePair<TopicAndPartition, IEnumerable<IMessage>>> messagesForPartitions, short requiredAcks, int ackTimeoutMs = 1000)
 			: base((short) RequestApiKeys.Produce)
 		{
 			if(messagesForPartitions == null) throw new ArgumentNullException("messagesForPartitions");

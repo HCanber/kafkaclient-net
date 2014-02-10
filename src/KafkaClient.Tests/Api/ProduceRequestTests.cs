@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Kafka.Client;
 using Kafka.Client.Api;
 using KafkaClient.Tests.TestHelpers;
 using Xunit;
@@ -19,7 +20,7 @@ namespace KafkaClient.Tests.Api
 		public void Given_request_Then_it_serializes_correctly(int requiredAckInt, int ackTimeoutMs)
 		{
 			var requiredAck = (short)requiredAckInt;
-			var request = new ProduceRequest(new[] { new KeyValuePair<TopicAndPartition, IEnumerable<Message>>(new TopicAndPartition("test", 0), new[] { new Message("key", "value") }) }, requiredAck, ackTimeoutMs: ackTimeoutMs);
+			var request = new ProduceRequest(new[] { new KeyValuePair<TopicAndPartition, IEnumerable<IMessage>>(new TopicAndPartition("test", 0), new[] { new Message("key", "value") }) }, requiredAck, ackTimeoutMs: ackTimeoutMs);
 			var bytes = request.Serialize("client", 4711);
 
 			var expectedSize = 2 + 2 + 4 + (2 + 6) +                      //ApiKey + ApiVersion + CorrelationId + String_ClientId
@@ -51,9 +52,9 @@ namespace KafkaClient.Tests.Api
 			const int ackTimeoutMs = 12345;
 			var request = new ProduceRequest(new[]
 			{
-				new KeyValuePair<TopicAndPartition, IEnumerable<Message>>(new TopicAndPartition("test1", 0), new[] { new Message("key1a", "value1a"),new Message("key1b", "value1b") }),
-				new KeyValuePair<TopicAndPartition, IEnumerable<Message>>(new TopicAndPartition("test1", 1), new[] { new Message("key1c", "value1c") }),
-				new KeyValuePair<TopicAndPartition, IEnumerable<Message>>(new TopicAndPartition("test2", 1), new[] { new Message("key2a", "value2a"),new Message("value2b") })
+				new KeyValuePair<TopicAndPartition, IEnumerable<IMessage>>(new TopicAndPartition("test1", 0), new[] { new Message("key1a", "value1a"),new Message("key1b", "value1b") }),
+				new KeyValuePair<TopicAndPartition, IEnumerable<IMessage>>(new TopicAndPartition("test1", 1), new[] { new Message("key1c", "value1c") }),
+				new KeyValuePair<TopicAndPartition, IEnumerable<IMessage>>(new TopicAndPartition("test2", 1), new[] { new Message("key2a", "value2a"),new Message("value2b") })
 			}, requiredAck, ackTimeoutMs: ackTimeoutMs);
 			var bytes = request.Serialize("client", 4711);
 
