@@ -36,6 +36,11 @@ namespace Kafka.Client.Api
 
 		public IReadOnlyDictionary<string, IReadOnlyList<ProducerResponseStatus>> StatusesByTopic { get { return _statusByTopic; } }
 
+		public IReadOnlyCollection<TopicAndPartitionValue<KafkaError>> GetErrors()
+		{
+			return _statusByTopic.SelectMany(
+				kvp => kvp.Value.Where(r => r.Error != KafkaError.NoError).Select(v=>new TopicAndPartitionValue<KafkaError>(v.TopicAndPartition,v.Error))).ToImmutable();
+		}
 	
 		public static ProduceResponse Deserialize(IReadBuffer readBuffer)
 		{

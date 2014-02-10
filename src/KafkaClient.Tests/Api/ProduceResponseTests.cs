@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Kafka.Client;
 using Kafka.Client.Api;
 using Kafka.Client.IO;
 using Xunit;
@@ -38,7 +39,7 @@ namespace KafkaClient.Tests.Api
 			produceResponse.StatusesByTopic.TryGetValue("T", out statuses).ShouldBeTrue();
 			statuses.ShouldHaveCount(1);
 			var status = statuses.First();
-			status.TopicAndPartition.ShouldBe(new TopicAndPartition("T",0x01020304));
+			status.TopicAndPartition.ShouldBe(new TopicAndPartition("T", 0x01020304));
 			status.Error.ShouldBe(KafkaError.NoError);
 			status.ErrorCode.ShouldBe<short>(0);
 			status.Offset.ShouldBe(0x1112131421222324);
@@ -98,6 +99,45 @@ namespace KafkaClient.Tests.Api
 			status21.Error.ShouldBe(KafkaError.NoError);
 			status21.ErrorCode.ShouldBe<short>(0);
 			status21.Offset.ShouldBe(0x1112131421222326);
+
+		}
+
+		[Fact]
+		public void Given_a_response_with_multi_errors_Then_it_deserialize_correctly()
+		{
+			var bytes = new byte[]
+			{
+				0x12, 0x34, 0x56, 0x78, //CorrelationId
+				0x00, 0x00, 0x00, 0x02, //Number of topics
+				0x00, 0x01,                                      //  1 Topic, length
+				(byte)'T',                                       //  1 Topic Name
+				0x00, 0x00, 0x00, 0x02,                          //  1 Number of partitions
+				0x01, 0x02, 0x03, 0x04,                          //  1  1 Partition
+				0x00, 0x05,                                      //  1  1 Error code
+				0x11, 0x12, 0x13, 0x14, 0x21, 0x22, 0x23, 0x24,  //  1  1 Offset
+				0x01, 0x02, 0x03, 0x05,                          //  1  2 Partition
+				0x00, 0x06,                                      //  1  2 Error code
+				0x11, 0x12, 0x13, 0x14, 0x21, 0x22, 0x23, 0x25,  //  1  2 Offset
+				0x00, 0x01,                                      //  2 Topic, length
+				(byte) 'U',                                      //  2 Topic Name
+				0x00, 0x00, 0x00, 0x01,                          //  2 Number of partitions
+				0x01, 0x02, 0x03, 0x06,                          //  2  1 Partition
+				0x00, 0x05,                                      //  2  1 Error code
+				0x11, 0x12, 0x13, 0x14, 0x21, 0x22, 0x23, 0x26,  //  2  1 Offset
+			};
+
+			var readBuffer = new ReadBuffer(bytes);
+			var produceResponse = ProduceResponse.Deserialize(readBuffer);
+
+			readBuffer.BytesLeft.ShouldBe(0);
+			produceResponse.CorrelationId.ShouldBe(0x12345678);
+			produceResponse.HasError.ShouldBeTrue();
+
+			var errorsByTopicPartition = produceResponse.GetErrors();
+			errorsByTopicPartition.ShouldHaveCount(3);
+			errorsByTopicPartition.ShouldContain(new TopicAndPartitionValue<KafkaError>(new TopicAndPartition("T", 0x01020304), (KafkaError)5));
+			errorsByTopicPartition.ShouldContain(new TopicAndPartitionValue<KafkaError>(new TopicAndPartition("T", 0x01020305), (KafkaError)6));
+			errorsByTopicPartition.ShouldContain(new TopicAndPartitionValue<KafkaError>(new TopicAndPartition("U", 0x01020306), (KafkaError)5));
 
 		}
 	}
