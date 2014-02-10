@@ -53,7 +53,6 @@ namespace Kafka.Client.Api
 			}).SelectMany(r => r).ToList();
 			return new ProduceResponse(correlationId, data);
 		}
-
 	}
 
 	public class ProducerResponseStatus
