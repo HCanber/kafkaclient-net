@@ -117,14 +117,7 @@ namespace Kafka.Client
 
 		protected List<TResponse> SendRequestToLeader<TPayload, TResponse>(IEnumerable<PayloadForTopicAndPartition<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyCollection<PayloadForTopicAndPartition<TPayload>> failedItems)
 		{
-			var payloadsByBroker = new Dictionary<Broker, List<PayloadForTopicAndPartition<TPayload>>>();
-			foreach(var payload in payloads)
-			{
-				var topicAndPartition = payload.TopicAndPartition;
-				var leader = GetLeader(topicAndPartition);
-				if(leader == null) throw new PartitionUnavailableException(topicAndPartition, "No leader for " + topicAndPartition);
-				payloadsByBroker.AddToList(leader, payload);
-			}
+			var payloadsByBroker = GroupPayloadsByBroker<TPayload>(payloads);
 
 			var failed = new List<PayloadForTopicAndPartition<TPayload>>();
 			var responses = new List<TResponse>();
@@ -133,7 +126,7 @@ namespace Kafka.Client
 				var broker = kvp.Key;
 				var payloadsForBroker = kvp.Value;
 				var requestId = GetNextRequestId();
-				var message = requestBuilder(payloadsForBroker, requestId);
+				var message = requestBuilder(payloadsForBroker,requestId);
 				var connection = GetConnectionForBroker(broker);
 				try
 				{
@@ -148,6 +141,19 @@ namespace Kafka.Client
 			}
 			failedItems = failed;
 			return responses;
+		}
+
+		private Dictionary<Broker, IReadOnlyCollection<PayloadForTopicAndPartition<TPayload>>> GroupPayloadsByBroker<TPayload>(IEnumerable<PayloadForTopicAndPartition<TPayload>> payloads)
+		{
+			var payloadsByBroker = payloads.GroupByToReadOnlyCollectionDictionary(payload =>
+			{
+				var topicAndPartition = payload.TopicAndPartition;
+				var leader = GetLeader(topicAndPartition);
+				if(leader == null) throw new PartitionUnavailableException(topicAndPartition, "No leader for " + topicAndPartition);
+				return leader;
+			});
+			
+			return payloadsByBroker;
 		}
 
 
