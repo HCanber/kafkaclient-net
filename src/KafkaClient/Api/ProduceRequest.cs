@@ -21,13 +21,13 @@ namespace Kafka.Client.Api
 		private readonly int _ackTimeoutMs;
 		private List<TopicItem<List<PartitionItem<List<MessageSetItem>>>>> _topicItems;
 
-		public ProduceRequest(IEnumerable<KeyValuePair<TopicAndPartition, IEnumerable<IMessage>>> messagesForPartitions, RequiredAck requiredAcks = RequiredAck.WrittenToDiskByLeader, int ackTimeoutMs = 1000)
+		public ProduceRequest(IEnumerable<TopicAndPartitionValue<IEnumerable<IMessage>>> messagesForPartitions, RequiredAck requiredAcks = RequiredAck.WrittenToDiskByLeader, int ackTimeoutMs = 1000)
 			: this(messagesForPartitions,(short)requiredAcks,ackTimeoutMs)
 		{
 			//Intentionally left blank
 		}
 
-		public ProduceRequest([NotNull] IEnumerable<KeyValuePair<TopicAndPartition, IEnumerable<IMessage>>> messagesForPartitions, short requiredAcks, int ackTimeoutMs = 1000)
+		public ProduceRequest([NotNull] IEnumerable<TopicAndPartitionValue<IEnumerable<IMessage>>> messagesForPartitions, short requiredAcks, int ackTimeoutMs = 1000)
 			: base((short) RequestApiKeys.Produce)
 		{
 			if(messagesForPartitions == null) throw new ArgumentNullException("messagesForPartitions");
@@ -37,9 +37,9 @@ namespace Kafka.Client.Api
 			_requiredAcks = requiredAcks;
 			_ackTimeoutMs = ackTimeoutMs;
 			const int offsetValueIsIgnored = -1;
-			_topicItems = messagesForPartitions.GroupBy(kvp => kvp.Key.Topic, kvp => kvp, 
+			_topicItems = messagesForPartitions.GroupBy(kvp => kvp.TopicAndPartition.Topic, kvp => kvp, 
 				(topic, items) => TopicItem.Create(topic,
-					items.Select(item => PartitionItem.Create(item.Key.Partition, item.Value.Select(m => new MessageSetItem(offsetValueIsIgnored, m)).ToList())).ToList()
+					items.Select(item => PartitionItem.Create(item.TopicAndPartition.Partition, item.Value.Select(m => new MessageSetItem(offsetValueIsIgnored, m)).ToList())).ToList()
 					)).ToList();
 		}
 
