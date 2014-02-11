@@ -13,7 +13,8 @@ namespace Kafka.Client.Exceptions
 		{
 		}
 
-		public FailedMessagesException(IReadOnlyCollection<Tuple<object,TopicAndPartition>> failedMessages, string message) : base(message)
+		public FailedMessagesException(IReadOnlyCollection<Tuple<object, TopicAndPartition>> failedMessages, string message)
+			: base(message)
 		{
 			_failedMessages = failedMessages;
 		}
@@ -23,7 +24,8 @@ namespace Kafka.Client.Exceptions
 		{
 		}
 
-		protected FailedMessagesException(SerializationInfo info, StreamingContext context) : base(info, context)
+		protected FailedMessagesException(SerializationInfo info, StreamingContext context)
+			: base(info, context)
 		{
 		}
 

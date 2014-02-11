@@ -52,6 +52,7 @@
     <Compile Include="Api\TopicItem.cs" />
     <Compile Include="Api\PartitionItem.cs" />
     <Compile Include="Api\ProduceRequest.cs" />
+    <Compile Include="Exceptions\ProduceFailedException.cs" />
     <Compile Include="IMessage.cs" />
     <Compile Include="IMessageSetItem.cs" />
     <Compile Include="Api\KafkaRequestExtensions.cs" />
@@ -59,6 +60,7 @@
     <Compile Include="Api\TopicAndPartition.cs" />
     <Compile Include="IO\IKafkaRequestPart.cs" />
     <Compile Include="ProducerBase.cs" />
+    <Compile Include="SimpleProducer.cs" />
     <Compile Include="Utils\JetBrainsAnnotations.cs" />
     <Compile Include="KafkaClient.cs" />
     <Compile Include="Exceptions\ConsumerFetchSizeTooSmall.cs" />
