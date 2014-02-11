@@ -46,8 +46,6 @@ namespace Kafka.Client
 
 		public IEnumerable<IMessageSetItem> GetMessages()
 		{
-			while(true)
-			{
 				var offsetsPerPartition = _offsetsPerPartition.Value;
 				var partitionsToGet = offsetsPerPartition.Keys.ToList();
 				while(partitionsToGet.Count>0)
@@ -107,8 +105,7 @@ namespace Kafka.Client
 					{
 						_Logger.TraceFormat(string.Format("Retrying the following partitions for topic \"{0}\": {1}", _topic, string.Join(",", partitionsToGet)));
 					}
-				}
-			}
+				}			
 		}
 
 		private IReadOnlyCollection<int> GetPartitionsForTopic()
