@@ -22,7 +22,7 @@ namespace Kafka.Client
 			if(produceResponse.HasError)
 				throw new ProduceFailedException(produceResponse.GetErrors());
 
-			return produceResponse.StatusesByTopic["topic"][0];
+			return produceResponse.StatusesByTopic[topic][0];
 		}
-	}
+	}	
 }
