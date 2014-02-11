@@ -67,7 +67,7 @@ namespace Xunit.Should
 				{
 					Assert.Equal(expected[i], item);
 				}
-				catch(EqualException e)
+				catch(EqualException)
 				{
 					throw new Exception(errorFormat(null, i));
 				}
