@@ -44,13 +44,18 @@ namespace Kafka.Client
 			}
 		}
 
+		public TopicMetadata GetMetadata()
+		{
+			return Client.GetMetadataForTopics(new[] {_topic})[0];
+		}
+
 		public IEnumerable<IMessageSetItem> GetMessages()
 		{
 			var offsetsPerPartition = _offsetsPerPartition.Value;
 			var partitionsToGet = offsetsPerPartition.Keys.ToList();
 			while(partitionsToGet.Count > 0)
 			{
-				IReadOnlyCollection<TopicAndPartitionValue<long>> failedItems;
+				IReadOnlyList<TopicAndPartitionValue<long>> failedItems;
 				var partitionAndOffsets = partitionsToGet.Select(p => new KeyValuePair<int, long>(p, offsetsPerPartition[p]));
 				var responses = FetchMessages(_topic, partitionAndOffsets, out failedItems, fetchMaxBytes: _fetchSizeBytes, maxWaitForMessagesInMs: _maxWaitTimeInMs);
 				partitionsToGet.Clear();

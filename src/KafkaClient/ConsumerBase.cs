@@ -18,17 +18,17 @@ namespace Kafka.Client
 		protected IKafkaClient Client { get { return _client; } }
 
 
-		protected IReadOnlyCollection<FetchResponse> FetchMessages(string topic, IEnumerable<KeyValuePair<int, long>> partitionAndOffsets, out IReadOnlyCollection<TopicAndPartitionValue<long>> failedItems, int fetchMaxBytes, int minBytes = 1, int maxWaitForMessagesInMs = 100)
+		protected IReadOnlyList<FetchResponse> FetchMessages(string topic, IEnumerable<KeyValuePair<int, long>> partitionAndOffsets, out IReadOnlyList<TopicAndPartitionValue<long>> failedItems, int fetchMaxBytes, int minBytes = 1, int maxWaitForMessagesInMs = 100)
 		{
 			return FetchMessages(partitionAndOffsets.Select(p => new TopicAndPartitionValue<long>(new TopicAndPartition(topic, p.Key), p.Value)).ToList(), out failedItems, fetchMaxBytes, minBytes, maxWaitForMessagesInMs);
 		}
 
-		protected IReadOnlyCollection<FetchResponse> FetchMessages(TopicAndPartition topic, long offset, out IReadOnlyCollection<TopicAndPartitionValue<long>> failedItems, int fetchMaxBytes, int minBytes = 1, int maxWaitForMessagesInMs = 100)
+		protected IReadOnlyList<FetchResponse> FetchMessages(TopicAndPartition topic, long offset, out IReadOnlyList<TopicAndPartitionValue<long>> failedItems, int fetchMaxBytes, int minBytes = 1, int maxWaitForMessagesInMs = 100)
 		{
 			return FetchMessages(new[] { new TopicAndPartitionValue<long>(topic, offset) }, out failedItems, fetchMaxBytes, minBytes, maxWaitForMessagesInMs);
 		}
 
-		protected IReadOnlyCollection<FetchResponse> FetchMessages(IReadOnlyCollection<TopicAndPartitionValue<long>> topicsAndOffsets, out IReadOnlyCollection<TopicAndPartitionValue<long>> failedItems, int fetchMaxBytes, int minBytes = FetchRequest.DefaultMinBytes, int maxWaitForMessagesInMs = FetchRequest.DefaultMaxWait)
+		protected IReadOnlyList<FetchResponse> FetchMessages(IReadOnlyCollection<TopicAndPartitionValue<long>> topicsAndOffsets, out IReadOnlyList<TopicAndPartitionValue<long>> failedItems, int fetchMaxBytes, int minBytes = FetchRequest.DefaultMinBytes, int maxWaitForMessagesInMs = FetchRequest.DefaultMaxWait)
 		{
 			if(fetchMaxBytes<MessageSetItem.SmallestPossibleSize) 
 				throw new ArgumentException("maxBytes must be at least "+MessageSetItem.SmallestPossibleSize,"fetchMaxBytes");

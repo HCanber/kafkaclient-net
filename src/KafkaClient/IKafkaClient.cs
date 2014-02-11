@@ -15,9 +15,9 @@ namespace Kafka.Client
 		void ResetMetadataForTopic(string topic);
 
 
-		IReadOnlyCollection<TResponse> SendToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyCollection<TopicAndPartitionValue<TPayload>> failedItems);
-		IReadOnlyCollection<TopicMetadata> GetMetadataForTopics(IReadOnlyCollection<string> topics);
+		IReadOnlyList<TResponse> SendToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyList<TopicAndPartitionValue<TPayload>> failedItems);
+		IReadOnlyList<TopicMetadata> GetMetadataForTopics(IReadOnlyCollection<string> topics);
 
-		IReadOnlyCollection<KeyValuePair<string, IReadOnlyCollection<int>>> GetPartitionsForTopics(IReadOnlyCollection<string> topics);
+		IReadOnlyList<KeyValuePair<string, IReadOnlyList<int>>> GetPartitionsForTopics(IReadOnlyCollection<string> topics);
 	}
 }

@@ -34,6 +34,11 @@ namespace Kafka.Client.Utils
 			return new ReadOnlyCollection<T>(sequence.ToList());
 		}
 
+		public static IReadOnlyList<T> ToImmutableList<T>(this IEnumerable<T> sequence)
+		{
+			return new ReadOnlyCollection<T>(sequence.ToList());
+		}
+
 		public static Dictionary<TKey, IReadOnlyCollection<TValue>> GroupByToReadOnlyCollectionDictionary<TKey, TValue>(this IEnumerable<TValue> sequence, Func<TValue, TKey> keySelector)
 		{
 			return GroupByToReadOnlySequenceDictionary<TValue, TKey, TValue, IReadOnlyCollection<TValue>>(sequence, keySelector, value => value);

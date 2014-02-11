@@ -18,7 +18,7 @@ namespace Kafka.Client
 		protected IKafkaClient Client { get { return _client; } }
 
 
-		protected IReadOnlyCollection<ProduceResponse> SendProduce(IEnumerable<TopicAndPartitionValue<IEnumerable<IMessage>>> messages, out IReadOnlyCollection<TopicAndPartitionValue<IEnumerable<IMessage>>> failedItems, RequiredAck requiredAcks = RequiredAck.WrittenToDiskByLeader, int ackTimeoutMs = 1000)
+		protected IReadOnlyCollection<ProduceResponse> SendProduce(IEnumerable<TopicAndPartitionValue<IEnumerable<IMessage>>> messages, out IReadOnlyList<TopicAndPartitionValue<IEnumerable<IMessage>>> failedItems, RequiredAck requiredAcks = RequiredAck.WrittenToDiskByLeader, int ackTimeoutMs = 1000)
 		{
 			var responses = Client.SendToLeader(messages, (items, requestid) =>
 				new ProduceRequest(items, requiredAcks, ackTimeoutMs),

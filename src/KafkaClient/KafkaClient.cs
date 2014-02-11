@@ -93,24 +93,24 @@ namespace Kafka.Client
 			}
 		}
 
-		public IReadOnlyCollection<TopicMetadata> GetMetadataForAllTopics()
+		public IReadOnlyList<TopicMetadata> GetMetadataForAllTopics()
 		{
 			return GetMetadataForTopics(null);
 		}
 
-		public IReadOnlyCollection<TopicMetadata> GetMetadataForTopics(IReadOnlyCollection<string> topics)
+		public IReadOnlyList<TopicMetadata> GetMetadataForTopics(IReadOnlyCollection<string> topics)
 		{
 			return SendMetadataRequest(topics).TopicMetadatas;
 		}
 
-		public IReadOnlyCollection<TResponse> SendToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyCollection<TopicAndPartitionValue<TPayload>> failedItems)
+		public IReadOnlyList<TResponse> SendToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyList<TopicAndPartitionValue<TPayload>> failedItems)
 		{
 			return SendRequestToLeader(payloads, requestBuilder, responseDeserializer, out failedItems);
 		}
 
-		public IReadOnlyCollection<KeyValuePair<string, IReadOnlyCollection<int>>> GetPartitionsForTopics(IReadOnlyCollection<string> topics)
+		public IReadOnlyList<KeyValuePair<string, IReadOnlyList<int>>> GetPartitionsForTopics(IReadOnlyCollection<string> topics)
 		{
-			var partitionsByTopic = new List<KeyValuePair<string, IReadOnlyCollection<int>>>();
+			var partitionsByTopic = new List<KeyValuePair<string, IReadOnlyList<int>>>();
 			Func<IEnumerable<string>, List<string>> handleTopics = (topcs) =>
 			{
 				var missing = new List<string>();
@@ -118,7 +118,7 @@ namespace Kafka.Client
 				{
 					ConcurrentSet<int> ptns;
 					if(_partitionsByTopic.TryGetValue(topic, out ptns))
-						partitionsByTopic.Add(new KeyValuePair<string, IReadOnlyCollection<int>>(topic, ptns.ToImmutable()));
+						partitionsByTopic.Add(new KeyValuePair<string, IReadOnlyList<int>>(topic, ptns.ToImmutableList()));
 					else
 						missing.Add(topic);
 				}

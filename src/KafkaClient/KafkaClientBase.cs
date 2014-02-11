@@ -115,7 +115,7 @@ namespace Kafka.Client
 			}
 		}
 
-		protected List<TResponse> SendRequestToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyCollection<TopicAndPartitionValue<TPayload>> failedItems)
+		protected List<TResponse> SendRequestToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyList<TopicAndPartitionValue<TPayload>> failedItems)
 		{
 			var payloadsByBroker = GroupPayloadsByBroker<TPayload>(payloads);
 

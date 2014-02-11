@@ -15,7 +15,7 @@ namespace Kafka.Client
 
 		public ProducerResponseStatus Send(string topic, int partition, byte[] value, byte[] key = null)
 		{
-			IReadOnlyCollection<TopicAndPartitionValue<IEnumerable<IMessage>>> failedItems;
+			IReadOnlyList<TopicAndPartitionValue<IEnumerable<IMessage>>> failedItems;
 			var responses = base.SendProduce(new[]{new TopicAndPartitionValue<IEnumerable<IMessage>>(new TopicAndPartition(topic,partition),new[]{new Message(key,value)} ), },out failedItems);
 
 			var produceResponse = responses.First();
