@@ -7,7 +7,6 @@ namespace Kafka.Client.Api
 {
 	public class TopicData
 	{
-		private static readonly ILog _Logger = LogManager.GetCurrentClassLogger();
 		private readonly string _topic;
 		private readonly IReadOnlyDictionary<int, FetchResponsePartitionData> _partitions;
 

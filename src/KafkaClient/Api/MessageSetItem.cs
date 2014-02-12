@@ -1,4 +1,3 @@
-using System.IO;
 using Common.Logging;
 using Kafka.Client.IO;
 using Kafka.Client.Utils;

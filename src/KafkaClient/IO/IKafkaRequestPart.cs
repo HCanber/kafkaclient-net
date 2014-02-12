@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace Kafka.Client.IO
+﻿namespace Kafka.Client.IO
 {
 	public interface IKafkaRequestPart
 	{

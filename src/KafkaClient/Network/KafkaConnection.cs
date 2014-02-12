@@ -9,7 +9,7 @@ namespace Kafka.Client.Network
 {
 	public class KafkaConnection : IKafkaConnection
 	{
-		private static int _nextAvailableId = 0;
+		private static int _nextAvailableId;
 		public const int UseDefaultBufferSize = -1;
 		public const int DefaultReadTimeoutMs = 2 * 60 * 1000;
 		private static readonly ILog _Logger = LogManager.GetCurrentClassLogger();
@@ -107,7 +107,7 @@ namespace Kafka.Client.Network
 
 				//Start by reading first 4 bytes to get the size of the rest of the message
 				ReadFromStream(networkStream, _sizeBuffer, 0, BitConversion.IntSize);
-				var size = _sizeBuffer.GetIntFromBigEndianBytes(0);
+				var size = _sizeBuffer.GetIntFromBigEndianBytes();
 
 				var buffer = ReadFromStream(networkStream, size);
 				return buffer;

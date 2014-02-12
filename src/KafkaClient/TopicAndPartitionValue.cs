@@ -37,7 +37,7 @@ namespace Kafka.Client
 		{
 			if(ReferenceEquals(null, obj)) return false;
 			if(ReferenceEquals(this, obj)) return true;
-			if(obj.GetType() != this.GetType()) return false;
+			if(obj.GetType() != GetType()) return false;
 			return Equals((TopicAndPartitionValue<T>) obj);
 		}
 
@@ -57,6 +57,11 @@ namespace Kafka.Client
 		public static bool operator !=(TopicAndPartitionValue<T> left, TopicAndPartitionValue<T> right)
 		{
 			return !Equals(left, right);
+		}
+
+		public override string ToString()
+		{
+			return _topicAndPartition + ": " + _value;
 		}
 	}
 }

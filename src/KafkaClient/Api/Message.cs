@@ -37,7 +37,7 @@ namespace Kafka.Client.Api
 		private const int _NoCompression = 0;
 
 
-		private int _valueSizeOffset;
+		private readonly int _valueSizeOffset;
 
 		public Message(IRandomAccessReadBuffer buffer)
 		{

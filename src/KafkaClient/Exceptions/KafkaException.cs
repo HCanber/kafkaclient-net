@@ -27,4 +27,5 @@ namespace Kafka.Client.Exceptions
 		{
 		}
 	}
+
 }

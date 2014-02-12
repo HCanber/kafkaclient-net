@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Common.Logging;
 using Kafka.Client.Api;
 using Kafka.Client.Exceptions;
+using Kafka.Client.JetBrainsAnnotations;
 using Kafka.Client.Utils;
 
 namespace Kafka.Client
@@ -17,7 +20,10 @@ namespace Kafka.Client
 		private int _fetchSizeBytes;
 		private readonly int? _maxFetchSizeBytes;
 		private readonly int _maxWaitTimeInMs;
-		private Lazy<Dictionary<int, long>> _offsetsPerPartition;
+		private bool _offsetsInitialized;
+		private ConcurrentDictionary<int, long> _offsetsPerPartition;
+		private readonly object _offsetInitLock = new object();
+		private readonly int[] _arrOnlyPartitions;
 
 		public SimpleConsumer(IKafkaClient client, string topic, IEnumerable<int> onlyTheesePartitions = null, int fetchSizeBytes = DefaultFetchSize, int? maxFetchSizeBytes = DefaultMaxFetchSize, int maxWaitTimeInMs = 1000, IEnumerable<KeyValuePair<int, long>> startOffsets = null)
 			: base(client)
@@ -28,30 +34,49 @@ namespace Kafka.Client
 			_fetchSizeBytes = fetchSizeBytes;
 			_maxFetchSizeBytes = maxFetchSizeBytes;
 			_maxWaitTimeInMs = maxWaitTimeInMs;
-			var arrOnlyPartitions = onlyTheesePartitions == null ? null : onlyTheesePartitions.OrderBy(i => i).ToArray();
-			{
-				_offsetsPerPartition = new Lazy<Dictionary<int, long>>(() =>
-				{
-					var partitions = GetPartitionsForTopic();
-					if(arrOnlyPartitions != null)
-					{
-						partitions = partitions.Where(p => Array.BinarySearch(arrOnlyPartitions, p) >= 0).ToList();
-					}
-					var dictionary = partitions.ToDictionary(partition => partition, _ => 0L);
-					startOffsets.ForEach(kvp => dictionary[kvp.Key] = kvp.Value);
-					return dictionary;
-				});
-			}
+			_offsetsPerPartition = startOffsets == null ? new ConcurrentDictionary<int, long>() : new ConcurrentDictionary<int, long>(startOffsets);
+			_arrOnlyPartitions = onlyTheesePartitions == null ? null : onlyTheesePartitions.OrderBy(i => i).ToArray();
 		}
+
+		private IReadOnlyDictionary<int, long> GetOffsets(bool force = false)
+		{
+			if(!_offsetsInitialized || force)
+			{
+				lock(_offsetInitLock)
+				{
+					if(!_offsetsInitialized || force)
+					{
+						var partitions = GetPartitionsForTopic();
+						if(_arrOnlyPartitions != null)
+						{
+							partitions = partitions.Where(p => Array.BinarySearch(_arrOnlyPartitions, p) >= 0).ToList();
+						}
+						var dictionary = new ConcurrentDictionary<int, long>();
+						partitions.ForEach(partition => dictionary[partition] = 0L);
+						//Overwrite offsets from metadata with previously stored offsets
+						_offsetsPerPartition.ForEach(kvp => dictionary[kvp.Key] = kvp.Value);
+						_offsetsPerPartition = dictionary;
+						_offsetsInitialized = true;
+					}
+				}
+			}
+			return new ReadOnlyDictionary<int, long>(_offsetsPerPartition);
+		}
+
+		private void UpdateOffset(int partition, long newOffser)
+		{
+			_offsetsPerPartition[partition] = newOffser;
+		}
+
 
 		public TopicMetadata GetMetadata()
 		{
-			return Client.GetMetadataForTopics(new[] {_topic})[0];
+			return Client.GetMetadataForTopic( _topic);
 		}
 
 		public IEnumerable<IMessageSetItem> GetMessages()
 		{
-			var offsetsPerPartition = _offsetsPerPartition.Value;
+			var offsetsPerPartition = GetOffsets();
 			var partitionsToGet = offsetsPerPartition.Keys.ToList();
 			while(partitionsToGet.Count > 0)
 			{
@@ -99,7 +124,7 @@ namespace Kafka.Client
 								var offset = messageSetItem.Offset;
 								if(offset >= currentOffset)
 								{
-									offsetsPerPartition[partition] = offset + 1;
+									UpdateOffset(partition, offset + 1);
 								}
 								yield return messageSetItem;
 							}
@@ -113,9 +138,12 @@ namespace Kafka.Client
 			}
 		}
 
+		[NotNull]
 		private IReadOnlyCollection<int> GetPartitionsForTopic()
 		{
-			return Client.GetPartitionsForTopics(new[] { _topic }).First().Value;
+			var topicItem = Client.GetPartitionsForTopics(new[] { _topic }).First();
+			if(topicItem.Item==null) throw new UnknownTopicException(topicItem.Topic);
+			return topicItem.Item;
 		}
 	}
 }

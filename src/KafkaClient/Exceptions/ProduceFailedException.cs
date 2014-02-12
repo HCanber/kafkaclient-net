@@ -10,6 +10,11 @@ namespace Kafka.Client.Exceptions
 	{
 		private readonly IReadOnlyCollection<TopicAndPartitionValue<KafkaError>> _errors;
 
+		public ProduceFailedException(string message):base(message)
+		{
+			_errors = new TopicAndPartitionValue<KafkaError>[0];
+		}
+
 		public ProduceFailedException(params TopicAndPartitionValue<KafkaError>[] errors)
 		{
 			_errors = errors;

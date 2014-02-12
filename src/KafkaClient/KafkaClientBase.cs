@@ -13,7 +13,7 @@ namespace Kafka.Client
 {
 	public abstract class KafkaClientBase
 	{
-		private int _requestId = 0;
+		private int _requestId;
 
 
 		/// <summary> Gets the logger for this instance.</summary>
@@ -115,9 +115,9 @@ namespace Kafka.Client
 			}
 		}
 
-		protected List<TResponse> SendRequestToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyList<TopicAndPartitionValue<TPayload>> failedItems)
+		protected List<TResponse> SendRequestToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyList<TopicAndPartitionValue<TPayload>> failedItems, bool allowTopicsToBeCreated)
 		{
-			var payloadsByBroker = GroupPayloadsByBroker<TPayload>(payloads);
+			var payloadsByBroker = GroupPayloadsByLeader(payloads, allowTopicsToBeCreated);
 
 			var failed = new List<TopicAndPartitionValue<TPayload>>();
 			var responses = new List<TResponse>();
@@ -143,13 +143,13 @@ namespace Kafka.Client
 			return responses;
 		}
 
-		private Dictionary<Broker, IReadOnlyCollection<TopicAndPartitionValue<TPayload>>> GroupPayloadsByBroker<TPayload>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads)
+		private Dictionary<Broker, IReadOnlyCollection<TopicAndPartitionValue<TPayload>>> GroupPayloadsByLeader<TPayload>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, bool allowTopicsToBeCreated)
 		{
 			var payloadsByBroker = payloads.GroupByToReadOnlyCollectionDictionary(payload =>
 			{
 				var topicAndPartition = payload.TopicAndPartition;
-				var leader = GetLeader(topicAndPartition);
-				if(leader == null) throw new PartitionUnavailableException(topicAndPartition, "No leader for " + topicAndPartition);
+				var leader = GetLeader(topicAndPartition, allowTopicsToBeCreated);
+				if(leader == null) throw new LeaderNotAvailableException(topicAndPartition);
 				return leader;
 			});
 			
@@ -157,7 +157,7 @@ namespace Kafka.Client
 		}
 
 
-		protected abstract Broker GetLeader(TopicAndPartition topicAndPartition);
+		protected abstract Broker GetLeader(TopicAndPartition topicAndPartition, bool allowTopicsToBeCreated);
 
 
 		private static TResponse Deserialize<TResponse>(ResponseDeserializer<TResponse> deserializer, byte[] response)

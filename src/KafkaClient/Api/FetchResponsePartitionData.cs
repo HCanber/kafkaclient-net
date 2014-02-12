@@ -7,7 +7,6 @@ namespace Kafka.Client.Api
 {
 	public class FetchResponsePartitionData
 	{
-		private static readonly ILog _Logger = LogManager.GetCurrentClassLogger();
 		private readonly short _error;
 		private readonly long _highwaterMarkOffset;
 		private readonly IReadOnlyList<MessageSetItem> _messages;

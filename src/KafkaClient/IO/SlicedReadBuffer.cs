@@ -8,8 +8,8 @@ namespace Kafka.Client.IO
 	{
 		private readonly ReadBuffer _buffer;
 		private readonly int _lastIndex;
-		private int _count;
-		private int _startIndex;
+		private readonly int _count;
+		private readonly int _startIndex;
 
 		public SlicedReadBuffer(ReadBuffer buffer, int size)
 		{

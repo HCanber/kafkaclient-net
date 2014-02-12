@@ -9,8 +9,8 @@ namespace Kafka.Client.IO
 	{
 		private readonly byte[] _bytes;
 		protected internal int Position;
-		private int _count;
-		private int _startIndex;
+		private readonly int _count;
+		private readonly int _startIndex;
 
 
 		public ReadBuffer(byte[] bytes, int startIndex = 0)
@@ -36,21 +36,21 @@ namespace Kafka.Client.IO
 
 		public short ReadShort()
 		{
-			var value = BitConversion.GetShortFromBigEndianBytes(_bytes, Position);
+			var value = _bytes.GetShortFromBigEndianBytes(Position);
 			Position += BitConversion.ShortSize;
 			return value;
 		}
 
 		public int ReadInt()
 		{
-			var value = BitConversion.GetIntFromBigEndianBytes(_bytes, Position);
+			var value = _bytes.GetIntFromBigEndianBytes(Position);
 			Position += BitConversion.IntSize;
 			return value;
 		}
 
 		public long ReadLong()
 		{
-			var value = BitConversion.GetLongFromBigEndianBytes(_bytes, Position);
+			var value = _bytes.GetLongFromBigEndianBytes(Position);
 			Position += BitConversion.LongSize;
 			return value;
 		}

@@ -1,6 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-
 namespace Kafka.Client.Api
 {
 	public static class TopicItem
@@ -25,5 +22,9 @@ namespace Kafka.Client.Api
 		public string Topic { get { return _topic; } }
 		public T Item { get { return _item; } }
 
+		public override string ToString()
+		{
+			return Topic + ": " + Item;
+		}
 	}
 }

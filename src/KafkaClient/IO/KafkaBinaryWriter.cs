@@ -13,7 +13,7 @@ namespace Kafka.Client.IO
 	public class KafkaBinaryWriter : KafkaWriter
 	{
 		private readonly BinaryWriter _binaryWriter;
-		internal int NumberOfWrittenBytes = 0;
+		internal int NumberOfWrittenBytes;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="KafkaBinaryWriter"/> class 

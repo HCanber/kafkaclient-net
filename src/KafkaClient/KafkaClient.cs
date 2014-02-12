@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Common.Logging;
 using Kafka.Client.Api;
-using Kafka.Client.Exceptions;
 using Kafka.Client.Network;
-using Kafka.Client.Utils;
 
 namespace Kafka.Client
 {
@@ -14,15 +11,13 @@ namespace Kafka.Client
 		private static readonly ILog _Logger = LogManager.GetCurrentClassLogger();
 		public const int DefaultBufferSize = KafkaConnection.UseDefaultBufferSize;
 		public const int DefaultReadTimeoutMs = 120 * 1000;
-
 		private readonly ConcurrentDictionary<HostPort, IKafkaConnection> _connectionsByHostPort = new ConcurrentDictionary<HostPort, IKafkaConnection>();
-		private readonly ConcurrentDictionary<string, ConcurrentSet<int>> _partitionsByTopic = new ConcurrentDictionary<string, ConcurrentSet<int>>();
-		private readonly ConcurrentDictionary<TopicAndPartition, Broker> _leaderForTopicAndPartition = new ConcurrentDictionary<TopicAndPartition, Broker>();
 
 		private readonly string _clientId;
 		private readonly int _readTimeoutMs;
 		private readonly int _readBufferSize;
 		private readonly int _writeBufferSize;
+		private readonly MetadataHolder _metadata;
 
 		public KafkaClient(string host, ushort port, string clientId, int readTimeoutMs = DefaultReadTimeoutMs, int readBufferSize = DefaultBufferSize, int writeBufferSize = DefaultBufferSize)
 			: this(new HostPort(host, port), clientId, readTimeoutMs, readBufferSize, writeBufferSize)
@@ -37,6 +32,7 @@ namespace Kafka.Client
 			_readBufferSize = readBufferSize;
 			_writeBufferSize = writeBufferSize;
 			_connectionsByHostPort.TryAdd(hostPort, CreateConnection(hostPort, _readBufferSize, _writeBufferSize, _readTimeoutMs));
+			_metadata = new MetadataHolder(this);
 		}
 
 		public string ClientId { get { return _clientId; } }
@@ -76,99 +72,49 @@ namespace Kafka.Client
 
 		public void ResetAllMetadata()
 		{
-			_partitionsByTopic.Clear();
-			_leaderForTopicAndPartition.Clear();
+			_metadata.ResetAllMetadata();
 		}
 
 		public void ResetMetadataForTopic(string topic)
 		{
-			ConcurrentSet<int> partitions;
-			if(_partitionsByTopic.TryRemove(topic, out partitions))
-			{
-				foreach(var partition in partitions)
-				{
-					Broker leader;
-					_leaderForTopicAndPartition.TryRemove(new TopicAndPartition(topic, partition), out leader);
-				}
-			}
+			_metadata.ResetMetadataForTopic(topic);
 		}
 
-		public IReadOnlyList<TopicMetadata> GetMetadataForAllTopics()
+		public IReadOnlyList<TopicMetadata> GetRawMetadataForAllTopics()
 		{
-			return GetMetadataForTopics(null);
+			return _metadata.GetRawMetadataForTopics(null,false);
 		}
 
-		public IReadOnlyList<TopicMetadata> GetMetadataForTopics(IReadOnlyCollection<string> topics)
+		public IReadOnlyList<TopicMetadata> GetRawMetadataForTopics(IReadOnlyCollection<string> topics, bool useCachedValues=true)
 		{
-			return SendMetadataRequest(topics).TopicMetadatas;
+			return _metadata.GetRawMetadataForTopics(topics,useCachedValues);
 		}
 
-		public IReadOnlyList<TResponse> SendToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyList<TopicAndPartitionValue<TPayload>> failedItems)
+		public TopicMetadata GetMetadataForTopic(string topic, bool useCachedValues = true)
 		{
-			return SendRequestToLeader(payloads, requestBuilder, responseDeserializer, out failedItems);
+			return _metadata.GetMetadataForTopic(topic,useCachedValues);
 		}
 
-		public IReadOnlyList<KeyValuePair<string, IReadOnlyList<int>>> GetPartitionsForTopics(IReadOnlyCollection<string> topics)
+		public TopicMetadataResponse SendMetadataRequestForTopics(IReadOnlyCollection<string> topics)
 		{
-			var partitionsByTopic = new List<KeyValuePair<string, IReadOnlyList<int>>>();
-			Func<IEnumerable<string>, List<string>> handleTopics = (topcs) =>
-			{
-				var missing = new List<string>();
-				foreach(var topic in topcs)
-				{
-					ConcurrentSet<int> ptns;
-					if(_partitionsByTopic.TryGetValue(topic, out ptns))
-						partitionsByTopic.Add(new KeyValuePair<string, IReadOnlyList<int>>(topic, ptns.ToImmutableList()));
-					else
-						missing.Add(topic);
-				}
-				return missing;
-			};
-			var topicsMissing = handleTopics(topics);
-			LoadMetaForTopics(topicsMissing);
-			var stillMissingTopics = handleTopics(topicsMissing);
-			if(stillMissingTopics.Count > 0)
-			{
-				throw new KafkaInvalidTopicException(stillMissingTopics, "Unknown topics: " + string.Join(", ", topics));
-			}
-			return partitionsByTopic;
+			return SendMetadataRequest(topics);
 		}
 
-		private void LoadMetaForTopics(IReadOnlyCollection<string> topics = null)
+		public IReadOnlyList<TResponse> SendToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyList<TopicAndPartitionValue<TPayload>> failedItems, bool allowTopicsToBeCreated=false)
 		{
-			var response = SendMetadataRequest(topics ?? new string[0]);
-			foreach(var topicMetadata in response.TopicMetadatas)
-			{
-				var topic = topicMetadata.Topic;
-				ResetMetadataForTopic(topic);
-				if(topicMetadata.PartionMetaDatas.Count > 0)
-				{
-					var partitions = _partitionsByTopic.GetOrAdd(topic, _ => new ConcurrentSet<int>());
-					foreach(var partitionMetadata in topicMetadata.PartionMetaDatas)
-					{
-						var partitionId = partitionMetadata.PartitionId;
-						var topicAndPartition = new TopicAndPartition(topic, partitionId);
-						_leaderForTopicAndPartition.TryAdd(topicAndPartition, partitionMetadata.Leader);
-						partitions.TryAdd(partitionId);
-					}
-				}
-			}
+			return SendRequestToLeader(payloads, requestBuilder, responseDeserializer, out failedItems, allowTopicsToBeCreated);
 		}
 
-		protected override Broker GetLeader(TopicAndPartition topicAndPartition)
+		public IReadOnlyList<TopicItem<IReadOnlyList<int>>> GetPartitionsForTopics(IReadOnlyCollection<string> topics)
 		{
-			var topic = topicAndPartition.Topic;
-			Broker broker;
-			if(!_leaderForTopicAndPartition.TryGetValue(topicAndPartition, out broker))
-			{
-				LoadMetaForTopics(new[] { topic });
+			return _metadata.GetPartitionsForTopics(topics);
+		}
 
-				if(!_leaderForTopicAndPartition.TryGetValue(topicAndPartition, out broker))
-				{
-					throw new KafkaInvalidPartitionException(topicAndPartition, string.Format("Partition{0} do not exist.", topicAndPartition));
-				}
-			}
-			return broker;
+
+
+		protected override Broker GetLeader(TopicAndPartition topicAndPartition, bool allowTopicsToBeCreated)
+		{
+			return _metadata.GetLeader(topicAndPartition,allowTopicsToBeCreated);
 		}
 
 		public void Close()

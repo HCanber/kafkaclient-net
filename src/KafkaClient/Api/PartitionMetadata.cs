@@ -31,6 +31,8 @@ namespace Kafka.Client.Api
 
 		public short ErrorCode { get { return _errorCode; } }
 
+		public KafkaError Error { get { return (KafkaError) _errorCode; } }
+
 
 
 		public static PartitionMetadata Deserialize(IReadBuffer buffer, IReadOnlyDictionary<int, Broker> brokersById)

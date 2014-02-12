@@ -29,6 +29,16 @@ namespace Kafka.Client.Utils
 			list.Add(value);
 		}
 
+		public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> sequence)
+		{
+			return sequence.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+		}
+
+		public static ReadOnlyDictionary<TKey, TValue> ToReadonly<TKey, TValue>(this IDictionary<TKey, TValue> dictionary)
+		{
+			return new ReadOnlyDictionary<TKey, TValue>(dictionary);
+		}
+
 		public static IReadOnlyCollection<T> ToImmutable<T>(this IEnumerable<T> sequence)
 		{
 			return new ReadOnlyCollection<T>(sequence.ToList());

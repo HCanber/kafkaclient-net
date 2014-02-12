@@ -5,7 +5,7 @@ namespace Kafka.Client.Api
 {
 	public class TooSmallBufferSizeMessage : IMessage
 	{
-		private static TooSmallBufferSizeMessage _instance = new TooSmallBufferSizeMessage();
+		private static readonly TooSmallBufferSizeMessage _Instance = new TooSmallBufferSizeMessage();
 
 		private TooSmallBufferSizeMessage() {/* Intentionally left blank */}
 
@@ -19,7 +19,7 @@ namespace Kafka.Client.Api
 		uint IMessage.Checksum { get { return 42; } }
 		bool IMessage.IsValid { get { return false; } }
 
-		public static TooSmallBufferSizeMessage Instance { get { return _instance; } }
+		public static TooSmallBufferSizeMessage Instance { get { return _Instance; } }
 
 		uint IMessage.ComputeChecksum() { return 4711; }
 

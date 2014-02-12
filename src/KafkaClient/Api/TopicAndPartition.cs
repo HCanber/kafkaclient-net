@@ -98,9 +98,9 @@ namespace Kafka.Client.Api
 			var partition = _partition.ToString(CultureInfo.InvariantCulture);
 			var sb = new StringBuilder(_topic.Length + 3 + partition.Length);
 			sb.Append(_topic);
-			sb.Append(" [");
+			sb.Append(" (");
 			sb.Append(_partition);
-			sb.Append(']');
+			sb.Append(')');
 			return sb.ToString();
 		}
 	}
