@@ -135,7 +135,7 @@ namespace Kafka.Client.Network
 			}
 			if(bytesRead < length)
 			{
-				throw new ErrorReadingException(string.Format("Did not receive everything. Expected {0} bytes. Only received {1} bytes on connection [{2}].", length, bytesRead, _id));
+				throw new ErrorReadingException(bytesRead, string.Format("Did not receive everything. Expected {0} bytes. Only received {1} bytes on connection [{2}].", length, bytesRead, _id));
 			}
 		}
 

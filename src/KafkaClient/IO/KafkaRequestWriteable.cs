@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading;
 
 namespace Kafka.Client.IO
 {
@@ -20,7 +21,17 @@ namespace Kafka.Client.IO
 
 		public void WriteTo(Stream stream, int correlationId)
 		{
-			_request.WriteTo(stream,_clientId,correlationId);
+			WriteTo(stream,correlationId,CancellationToken.None);
+		}
+
+		public void WriteTo(Stream stream, int correlationId, CancellationToken cancellationToken)
+		{
+			_request.WriteTo(stream,_clientId,correlationId,cancellationToken);
+		}
+
+		public override string ToString()
+		{
+			return _request.ToString();
 		}
 	}
 }

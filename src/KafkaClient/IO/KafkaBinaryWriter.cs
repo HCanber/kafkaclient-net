@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using Kafka.Client.Utils;
 
 namespace Kafka.Client.IO
@@ -13,6 +14,7 @@ namespace Kafka.Client.IO
 	public class KafkaBinaryWriter : KafkaWriter
 	{
 		private readonly BinaryWriter _binaryWriter;
+		private readonly CancellationToken _cancellationToken;
 		internal int NumberOfWrittenBytes;
 
 		/// <summary>
@@ -28,7 +30,21 @@ namespace Kafka.Client.IO
 		/// using big endian bytes order for primitive types and UTF-8 encoding for strings.
 		/// </summary>
 		/// <param name="output">
-		/// The output stream.
+		///   The output stream.
+		/// </param>
+		/// <param name="cancellationToken"></param>
+		public KafkaBinaryWriter(Stream output, CancellationToken cancellationToken)
+			: this(new BinaryWriter(output),cancellationToken)
+		{
+		}
+
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="KafkaBinaryWriter"/> class 
+		/// using big endian bytes order for primitive types and UTF-8 encoding for strings.
+		/// </summary>
+		/// <param name="output">
+		///   The output stream.
 		/// </param>
 		public KafkaBinaryWriter(Stream output)
 			: this(new BinaryWriter(output))
@@ -44,12 +60,24 @@ namespace Kafka.Client.IO
 			_binaryWriter = binaryWriter;
 		}
 
-			/// <summary>
+		/// <summary>
+		/// Initializes a new instance of the <see cref="KafkaBinaryWriter"/> class 
+		/// using big endian bytes order for primitive types and UTF-8 encoding for strings.
+		/// </summary>
+		public KafkaBinaryWriter(BinaryWriter binaryWriter, CancellationToken cancellationToken)
+		{
+			_binaryWriter = binaryWriter;
+			_cancellationToken = cancellationToken;
+			cancellationToken.ThrowIfCancellationRequested();
+		}
+
+		/// <summary>
 		/// Writes one byte to the current stream 
 		/// and advances the stream position by one byte
 		/// </summary>
 		public override void WriteByte(byte b)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			_binaryWriter.Write(b);
 		}
 
@@ -59,6 +87,7 @@ namespace Kafka.Client.IO
 		/// </summary>
 		public override void WriteShort(short value)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			var bytes = BitConversion.GetBigEndianBytes(value);
 			_binaryWriter.Write(bytes, 0, BitConversion.ShortSize);
 			NumberOfWrittenBytes += BitConversion.ShortSize;
@@ -70,6 +99,7 @@ namespace Kafka.Client.IO
 		/// </summary>
 		public override void WriteInt(int value)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			var bytes = BitConversion.GetBigEndianBytes(value);
 			_binaryWriter.Write(bytes, 0, BitConversion.IntSize);
 			NumberOfWrittenBytes += BitConversion.IntSize;
@@ -82,6 +112,7 @@ namespace Kafka.Client.IO
 		/// </summary>
 		public void WriteUInt(uint value)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			var bytes = BitConversion.GetBigEndianBytes(value);
 			_binaryWriter.Write(bytes, 0, BitConversion.IntSize);
 			NumberOfWrittenBytes += BitConversion.IntSize;
@@ -92,6 +123,7 @@ namespace Kafka.Client.IO
 		/// </summary>
 		public override void WriteLong(long value)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			var bytes = BitConversion.GetBigEndianBytes(value);
 			_binaryWriter.Write(bytes, 0, BitConversion.LongSize);
 			NumberOfWrittenBytes += BitConversion.LongSize;
@@ -105,6 +137,7 @@ namespace Kafka.Client.IO
 		/// </param>
 		public override void WriteShortString(string value)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			if(value == null)
 			{
 				WriteShort(-1);
@@ -123,6 +156,7 @@ namespace Kafka.Client.IO
 
 		public override void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<T> writeItem)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			var itemCount = items == null ? 0 : items.Count;
 			WriteInt(itemCount);
 			if(itemCount > 0)
@@ -135,6 +169,7 @@ namespace Kafka.Client.IO
 		}
 		public override void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<T, int> writeItem)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			var itemCount = items == null ? 0 : items.Count;
 			WriteInt(itemCount);
 			if(itemCount > 0)
@@ -149,6 +184,7 @@ namespace Kafka.Client.IO
 		}
 		public override void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T> writeItem)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			var itemCount = items == null ? 0 : items.Count;
 			WriteInt(itemCount);
 			if(itemCount > 0)
@@ -161,6 +197,7 @@ namespace Kafka.Client.IO
 		}
 		public override void WriteRepeated<T>(IReadOnlyCollection<T> items, Action<KafkaWriter, T, int> writeItem)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			var itemCount = items == null ? 0 : items.Count;
 			WriteInt(itemCount);
 			if(itemCount > 0)
@@ -176,6 +213,7 @@ namespace Kafka.Client.IO
 
 		public override void WriteVariableBytes(byte[] bytes)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			if(bytes == null)
 			{
 				WriteInt(-1);
@@ -191,6 +229,7 @@ namespace Kafka.Client.IO
 
 		public override void WriteRaw(IRandomAccessReadBuffer buffer)
 		{
+			_cancellationToken.ThrowIfCancellationRequested();
 			buffer.WriteTo(_binaryWriter.BaseStream);
 			NumberOfWrittenBytes += buffer.Count;
 		}
@@ -200,6 +239,6 @@ namespace Kafka.Client.IO
 			_binaryWriter.Flush();
 			_binaryWriter.Dispose();
 		}
-
+		
 	}
 }

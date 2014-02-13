@@ -66,8 +66,13 @@
     <Compile Include="Api\TopicAndPartition.cs" />
     <Compile Include="IO\IKafkaRequestPart.cs" />
     <Compile Include="MetadataHolder.cs" />
+    <Compile Include="Network\AsyncKafkaConnection.cs" />
+    <Compile Include="Network\IAsyncKafkaConnection.cs" />
+    <Compile Include="Network\SendFailedException.cs" />
     <Compile Include="ProducerBase.cs" />
+    <Compile Include="ResponseResult.cs" />
     <Compile Include="SimpleProducer.cs" />
+    <Compile Include="SingleResponseResult.cs" />
     <Compile Include="Utils\EmptyReadOnly.cs" />
     <Compile Include="Utils\JetBrainsAnnotations.cs" />
     <Compile Include="KafkaClient.cs" />
@@ -122,6 +127,8 @@
     <Compile Include="Api\ResponseBase.cs" />
     <Compile Include="IO\SlicedReadBuffer.cs" />
     <Compile Include="Api\TopicData.cs" />
+    <Compile Include="Utils\TaskHelper.cs" />
+    <Compile Include="Utils\TaskExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

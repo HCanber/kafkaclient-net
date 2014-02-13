@@ -4,6 +4,14 @@ using Kafka.Client.Api;
 
 namespace Kafka.Client
 {
+	public static class TopicAndPartitionValue
+	{
+		public static TopicAndPartitionValue<T> Create<T>(TopicAndPartition topicAndPartition, T value)
+		{
+			return new TopicAndPartitionValue<T>(topicAndPartition, value);
+		}
+	}
+
 	public class TopicAndPartitionValue<T> : IEquatable<TopicAndPartitionValue<T>>
 	{
 		private readonly TopicAndPartition _topicAndPartition;
@@ -38,14 +46,14 @@ namespace Kafka.Client
 			if(ReferenceEquals(null, obj)) return false;
 			if(ReferenceEquals(this, obj)) return true;
 			if(obj.GetType() != GetType()) return false;
-			return Equals((TopicAndPartitionValue<T>) obj);
+			return Equals((TopicAndPartitionValue<T>)obj);
 		}
 
 		public override int GetHashCode()
 		{
 			unchecked
 			{
-				return _topicAndPartition.GetHashCode()*397 ^ EqualityComparer<T>.Default.GetHashCode(_value);
+				return _topicAndPartition.GetHashCode() * 397 ^ EqualityComparer<T>.Default.GetHashCode(_value);
 			}
 		}
 

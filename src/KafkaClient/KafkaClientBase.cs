@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Common.Logging;
 using Kafka.Client.Api;
 using Kafka.Client.Exceptions;
@@ -23,7 +24,7 @@ namespace Kafka.Client
 		protected abstract string GetClientId();
 
 		/// <summary>Gets all connections.</summary>
-		protected abstract IEnumerable<IKafkaConnection> GetAllConnections();
+		protected abstract IEnumerable<IAsyncKafkaConnection> GetAllConnections();
 
 		/// <summary>Closes all connections</summary>
 		protected void CloseAllConnections()
@@ -35,34 +36,33 @@ namespace Kafka.Client
 		/// <summary>
 		/// Sends a metadata request to Kafka asking for metadata for all topics.
 		/// The default implementation sends to any broker, retrying with all known brokers.
-		/// <remarks>Override <see cref="SendMetadataRequest(TopicMetadataRequest,int)"/> to change the default behavior.</remarks>
+		/// <remarks>Override SendMetadataRequestAsync to change the default behavior.</remarks>
 		/// </summary>
-		protected TopicMetadataResponse SendMetadataRequestAllTopics()
+		/// <param name="cancellationToken"></param>
+		protected Task<TopicMetadataResponse> SendMetadataRequestAllTopicsAsync(CancellationToken cancellationToken)
 		{
-			return SendMetadataRequest(null);
+			return SendMetadataRequestAsync(null, cancellationToken);
 		}
 
 		/// <summary>
 		/// Sends a metadata request to Kafka asking for metadata for the specified topics.
 		/// The default implementation sends to any broker, retrying with all known brokers.
-		/// <remarks>Override <see cref="SendMetadataRequest(TopicMetadataRequest,int)"/> to change the default behavior.</remarks>
+		/// <remarks>Override SendMetadataRequestAsync to change the default behavior.</remarks>
 		/// </summary>
-		protected virtual TopicMetadataResponse SendMetadataRequest(IReadOnlyCollection<string> topics)
+		protected virtual Task<TopicMetadataResponse> SendMetadataRequestAsync(IReadOnlyCollection<string> topics, CancellationToken cancellationToken)
 		{
 			var requestId = GetNextRequestId();
 			var request = new TopicMetadataRequest(topics);
-			var response = SendMetadataRequest(request, requestId);
-			return response;
+			return SendMetadataRequestAsync(request, requestId, cancellationToken);
 		}
 
 		/// <summary>
 		/// Sends a metadata request to Kafka asking for metadata for the specified topics.
 		/// The request is sent to any of the known brokers. If the first broker fails, then it retries with the next and so on.
 		/// </summary>
-		protected virtual TopicMetadataResponse SendMetadataRequest(TopicMetadataRequest request, int requestId)
+		protected virtual Task<TopicMetadataResponse> SendMetadataRequestAsync(TopicMetadataRequest request, int requestId, CancellationToken cancellationToken)
 		{
-			var response = SendRequestToAnyBroker(request, TopicMetadataResponse.Deserialize, requestId);
-			return response;
+			return SendRequestToAnyBrokerAsync(request, TopicMetadataResponse.Deserialize, requestId, cancellationToken);
 		}
 
 
@@ -80,9 +80,10 @@ namespace Kafka.Client
 		/// <param name="request">The message.</param>
 		/// <param name="deserializer">A delegate that deserializes the response to a instance of <typeparamref name="TResponse"/>.</param>
 		/// <param name="requestId">The request identifier. A unique id is returned by </param>
+		/// <param name="cancellationToken"></param>
 		/// <returns></returns>
 		/// <exception cref="KafkaException"></exception>
-		protected TResponse SendRequestToAnyBroker<TResponse>(IKafkaRequest request, ResponseDeserializer<TResponse> deserializer, int requestId)
+		protected async Task<TResponse> SendRequestToAnyBrokerAsync<TResponse>(IKafkaRequest request, ResponseDeserializer<TResponse> deserializer, int requestId, CancellationToken cancellationToken)
 		{
 			var connections = GetAllConnections();
 
@@ -91,7 +92,7 @@ namespace Kafka.Client
 			{
 				try
 				{
-					var response = SendRequestAndReceive(connection, request, deserializer, requestId);
+					var response = await SendRequestAndReceiveAsync(connection, request, deserializer, requestId, cancellationToken);
 					return response;
 				}
 				catch(Exception ex)
@@ -104,60 +105,74 @@ namespace Kafka.Client
 			throw new KafkaException(errorMessage);
 		}
 
-		protected virtual TResponse SendRequestAndReceive<TResponse>(IKafkaConnection connection, IKafkaRequest request, ResponseDeserializer<TResponse> deserializer, int requestId)
+		protected virtual async Task<TResponse> SendRequestAndReceiveAsync<TResponse>(IAsyncKafkaConnection connection, IKafkaRequest request, ResponseDeserializer<TResponse> deserializer, int requestId, CancellationToken cancellationToken)
 		{
-			lock(connection)
-			{
-				var message=new KafkaRequestWriteable(request,GetClientId());
-				var responseBytes = connection.Request(message, requestId);
-				var response = Deserialize(deserializer, responseBytes);
-				return response;
-			}
+			var message = new KafkaRequestWriteable(request, GetClientId());
+			var responseBytes = await connection.RequestAsync(message, requestId, cancellationToken);
+			var response = Deserialize(deserializer, responseBytes);
+			return response;
 		}
 
-		protected List<TResponse> SendRequestToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyList<TopicAndPartitionValue<TPayload>> failedItems, bool allowTopicsToBeCreated)
+		protected async Task<ResponseResult<TResponse, TPayload>> SendRequestToLeaderAsync<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, bool allowTopicsToBeCreated, CancellationToken cancellationToken)
 		{
-			var payloadsByBroker = GroupPayloadsByLeader(payloads, allowTopicsToBeCreated);
+			var payloadsByBroker = await GroupPayloadsByLeader(payloads, allowTopicsToBeCreated, cancellationToken);
 
 			var failed = new List<TopicAndPartitionValue<TPayload>>();
-			var responses = new List<TResponse>();
+			var tasks = new List<Tuple<IReadOnlyCollection<TopicAndPartitionValue<TPayload>>, Task<TResponse>,int, HostPort>>();
 			foreach(var kvp in payloadsByBroker)
 			{
 				var broker = kvp.Key;
 				var payloadsForBroker = kvp.Value;
 				var requestId = GetNextRequestId();
-				var message = requestBuilder(payloadsForBroker,requestId);
+				var message = requestBuilder(payloadsForBroker, requestId);
 				var connection = GetConnectionForBroker(broker);
+				var task = SendRequestAndReceiveAsync(connection, message, responseDeserializer, requestId, cancellationToken);
+				tasks.Add(Tuple.Create(payloadsForBroker, task, requestId, connection.HostPort));
+			}
+			await Task.WhenAll(tasks.Select(t => t.Item2));
+			var responses = new List<TResponse>();
+			foreach(var tuple in tasks)
+			{
 				try
 				{
-					var response = SendRequestAndReceive(connection, message, responseDeserializer, requestId);
+					var response = tuple.Item2.Result;
 					responses.Add(response);
 				}
 				catch(Exception ex)
 				{
-					failed.AddRange(payloadsForBroker);
-					Logger.WarnException(ex, "Error while sending request {0} to server {1}", message, connection);
+					failed.AddRange(tuple.Item1);
+					var requestId = tuple.Item3;
+					var hostPort = tuple.Item4;
+					Logger.WarnException(ex, "Error while sending request {0} to server {1}", requestId, hostPort);
 				}
 			}
-			failedItems = failed;
-			return responses;
+			return new ResponseResult<TResponse, TPayload>(responses, failed);
 		}
 
-		private Dictionary<Broker, IReadOnlyCollection<TopicAndPartitionValue<TPayload>>> GroupPayloadsByLeader<TPayload>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, bool allowTopicsToBeCreated)
+		private async Task<Dictionary<Broker, IReadOnlyCollection<TopicAndPartitionValue<TPayload>>>> GroupPayloadsByLeader<TPayload>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, bool allowTopicsToBeCreated, CancellationToken cancellationToken)
 		{
-			var payloadsByBroker = payloads.GroupByToReadOnlyCollectionDictionary(payload =>
+			var tasks = payloads.Select(async payload =>
 			{
-				var topicAndPartition = payload.TopicAndPartition;
-				var leader = GetLeader(topicAndPartition, allowTopicsToBeCreated);
-				if(leader == null) throw new LeaderNotAvailableException(topicAndPartition);
+				var leader = await GetLeaderAsync(payload.TopicAndPartition, allowTopicsToBeCreated, cancellationToken);
+
+				return Tuple.Create(payload, leader);
+			}).ToList();
+			await Task.WhenAll(tasks.ToArray<Task>());
+
+			var payloadsByBroker = tasks.GroupByToReadOnlyCollectionDictionary(task =>
+			{
+				var t = task.Result;
+				var payload = t.Item1;
+				var leader = t.Item2;
+				if(leader == null) throw new LeaderNotAvailableException(payload.TopicAndPartition);
 				return leader;
-			});
-			
+			}, task => task.Result.Item1);
+
 			return payloadsByBroker;
 		}
 
 
-		protected abstract Broker GetLeader(TopicAndPartition topicAndPartition, bool allowTopicsToBeCreated);
+		protected abstract Task<Broker> GetLeaderAsync(TopicAndPartition topicAndPartition, bool allowTopicsToBeCreated, CancellationToken cancellationToken);
 
 
 		private static TResponse Deserialize<TResponse>(ResponseDeserializer<TResponse> deserializer, byte[] response)
@@ -167,6 +182,8 @@ namespace Kafka.Client
 			return deserialized;
 		}
 
-		protected abstract IKafkaConnection GetConnectionForBroker(Broker broker);
+		protected abstract IAsyncKafkaConnection GetConnectionForBroker(Broker broker);
+
+
 	}
 }

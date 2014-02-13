@@ -1,5 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Common.Logging;
 using Kafka.Client.Api;
 using Kafka.Client.Network;
@@ -9,10 +11,11 @@ namespace Kafka.Client
 	public class KafkaClient : KafkaClientBase, IKafkaClient
 	{
 		private static readonly ILog _Logger = LogManager.GetCurrentClassLogger();
-		public const int DefaultBufferSize = KafkaConnection.UseDefaultBufferSize;
+		public const int DefaultBufferSize = AsyncKafkaConnection.UseDefaultBufferSize;
 		public const int DefaultReadTimeoutMs = 120 * 1000;
-		private readonly ConcurrentDictionary<HostPort, IKafkaConnection> _connectionsByHostPort = new ConcurrentDictionary<HostPort, IKafkaConnection>();
+		private readonly ConcurrentDictionary<HostPort, IAsyncKafkaConnection> _connectionsByHostPort = new ConcurrentDictionary<HostPort, IAsyncKafkaConnection>();
 
+		private readonly HostPort _hostPort;
 		private readonly string _clientId;
 		private readonly int _readTimeoutMs;
 		private readonly int _readBufferSize;
@@ -27,15 +30,24 @@ namespace Kafka.Client
 
 		public KafkaClient(HostPort hostPort, string clientId, int readTimeoutMs = DefaultReadTimeoutMs, int readBufferSize = DefaultBufferSize, int writeBufferSize = DefaultBufferSize)
 		{
+			_hostPort = hostPort;
 			_clientId = clientId;
 			_readTimeoutMs = readTimeoutMs;
 			_readBufferSize = readBufferSize;
 			_writeBufferSize = writeBufferSize;
-			_connectionsByHostPort.TryAdd(hostPort, CreateConnection(hostPort, _readBufferSize, _writeBufferSize, _readTimeoutMs));
 			_metadata = new MetadataHolder(this);
 		}
 
 		public string ClientId { get { return _clientId; } }
+
+		/// <summary>
+		/// Connects this instance to the broker specified in the constructor. Calling this is optional. If not called, this instance will connect to the broker when needed.
+		/// Calling Connect() manually gives you a chance to handle any exceptions related to the broker is not responding.
+		/// </summary>
+		public void Connect()
+		{
+			_connectionsByHostPort.TryAdd(_hostPort, CreateConnection(_hostPort, _readBufferSize, _writeBufferSize, _readTimeoutMs));
+		}
 
 
 		protected override string GetClientId()
@@ -43,14 +55,15 @@ namespace Kafka.Client
 			return _clientId;
 		}
 
-		protected IKafkaConnection CreateConnection(HostPort hostPort)
+		protected IAsyncKafkaConnection CreateConnection(HostPort hostPort)
 		{
 			return CreateConnection(hostPort, _readBufferSize, _writeBufferSize, _readTimeoutMs);
 		}
 
-		private static IKafkaConnection CreateConnection(HostPort hostPort, int readBufferSize, int writeBufferSize, int readTimeoutMs)
+		private static IAsyncKafkaConnection CreateConnection(HostPort hostPort, int readBufferSize, int writeBufferSize, int readTimeoutMs)
 		{
-			return new KafkaConnection(hostPort, readBufferSize, writeBufferSize, readTimeoutMs);
+			var connection = new AsyncKafkaConnection(hostPort, readBufferSize, writeBufferSize, readTimeoutMs, autoConnect: true);
+			return connection;
 		}
 
 		protected override ILog Logger
@@ -58,15 +71,20 @@ namespace Kafka.Client
 			get { return _Logger; }
 		}
 
-		protected override IEnumerable<IKafkaConnection> GetAllConnections()
+		protected override IEnumerable<IAsyncKafkaConnection> GetAllConnections()
 		{
 			var connections = _connectionsByHostPort.Values;
 			return connections;
 		}
 
-		protected override IKafkaConnection GetConnectionForBroker(Broker broker)
+		protected override IAsyncKafkaConnection GetConnectionForBroker(Broker broker)
 		{
-			var connection = _connectionsByHostPort.GetOrAdd(broker.Host, CreateConnection);
+			var connection = _connectionsByHostPort.GetOrAdd(broker.Host,
+				hostPort =>
+				{
+					_Logger.DebugFormat("No connection to broker {0} found. Creating new.", hostPort);
+					return CreateConnection(hostPort);
+				});
 			return connection;
 		}
 
@@ -80,41 +98,41 @@ namespace Kafka.Client
 			_metadata.ResetMetadataForTopic(topic);
 		}
 
-		public IReadOnlyList<TopicMetadata> GetRawMetadataForAllTopics()
+		public Task<IReadOnlyList<TopicMetadata>> GetRawMetadataForAllTopicsAsync(CancellationToken cancellationToken)
 		{
-			return _metadata.GetRawMetadataForTopics(null,false);
+			return _metadata.GetRawMetadataForTopicsAsync(null, cancellationToken, useCachedValues: false);
 		}
 
-		public IReadOnlyList<TopicMetadata> GetRawMetadataForTopics(IReadOnlyCollection<string> topics, bool useCachedValues=true)
+		public Task<IReadOnlyList<TopicMetadata>> GetRawMetadataForTopicsAsync(IReadOnlyCollection<string> topics, CancellationToken cancellationToken, bool useCachedValues = true)
 		{
-			return _metadata.GetRawMetadataForTopics(topics,useCachedValues);
+			return _metadata.GetRawMetadataForTopicsAsync(topics, cancellationToken, useCachedValues: useCachedValues);
 		}
 
-		public TopicMetadata GetMetadataForTopic(string topic, bool useCachedValues = true)
+		public Task<TopicMetadata> GetMetadataForTopicAsync(string topic, CancellationToken cancellationToken, bool useCachedValues = true)
 		{
-			return _metadata.GetMetadataForTopic(topic,useCachedValues);
+			return _metadata.GetMetadataForTopic(topic, cancellationToken, useCachedValues: useCachedValues);
 		}
 
-		public TopicMetadataResponse SendMetadataRequestForTopics(IReadOnlyCollection<string> topics)
+		public Task<TopicMetadataResponse> SendMetadataRequestForTopicsAsync(IReadOnlyCollection<string> topics, CancellationToken cancellationToken)
 		{
-			return SendMetadataRequest(topics);
+			return SendMetadataRequestAsync(topics, cancellationToken);
 		}
 
-		public IReadOnlyList<TResponse> SendToLeader<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, out IReadOnlyList<TopicAndPartitionValue<TPayload>> failedItems, bool allowTopicsToBeCreated=false)
+		public Task<ResponseResult<TResponse, TPayload>> SendToLeaderAsync<TPayload, TResponse>(IEnumerable<TopicAndPartitionValue<TPayload>> payloads, RequestBuilder<TPayload> requestBuilder, ResponseDeserializer<TResponse> responseDeserializer, CancellationToken cancellationToken, bool allowTopicsToBeCreated = false)
 		{
-			return SendRequestToLeader(payloads, requestBuilder, responseDeserializer, out failedItems, allowTopicsToBeCreated);
+			return SendRequestToLeaderAsync(payloads, requestBuilder, responseDeserializer, allowTopicsToBeCreated, cancellationToken);
 		}
 
-		public IReadOnlyList<TopicItem<IReadOnlyList<int>>> GetPartitionsForTopics(IReadOnlyCollection<string> topics)
+		public Task<IReadOnlyList<TopicItem<IReadOnlyList<int>>>> GetPartitionsForTopicsAsync(IReadOnlyCollection<string> topics, CancellationToken cancellationToken)
 		{
-			return _metadata.GetPartitionsForTopics(topics);
+			return _metadata.GetPartitionsForTopicsAsync(topics, cancellationToken);
 		}
 
 
 
-		protected override Broker GetLeader(TopicAndPartition topicAndPartition, bool allowTopicsToBeCreated)
+		protected override Task<Broker> GetLeaderAsync(TopicAndPartition topicAndPartition, bool allowTopicsToBeCreated, CancellationToken cancellationToken)
 		{
-			return _metadata.GetLeader(topicAndPartition,allowTopicsToBeCreated);
+			return _metadata.GetLeaderAsync(topicAndPartition, cancellationToken, allowTopicsToBeCreated: allowTopicsToBeCreated);
 		}
 
 		public void Close()

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Kafka.Client.Api;
 using Kafka.Client.Exceptions;
 
@@ -19,28 +20,39 @@ namespace Kafka.Client
 
 		public ProducerResponseStatus Send(string topic, int partition, byte[] value, byte[] key = null)
 		{
+			return SendAsync(topic, partition, value, key).Result;
+		}
+
+		public async Task<ProducerResponseStatus> SendAsync(string topic, int partition, byte[] value, byte[] key = null)
+		{
+			return await SendAsync(topic, partition, value, CancellationToken.None, key);
+		}
+
+		public async Task<ProducerResponseStatus> SendAsync(string topic, int partition, byte[] value, CancellationToken cancellationToken, byte[] key = null)
+		{
 			var topicAndPartition = new TopicAndPartition(topic, partition);
 
-			ProduceResponse response=null;
+			ProduceResponse response = null;
 			var attempt = 1;
-			while(response==null && attempt <= 3)
+			while(response == null && attempt <= 3)
 			{
 				try
 				{
-					IReadOnlyList<TopicAndPartitionValue<IEnumerable<IMessage>>> failedItems;
-					response = SendProduce(topicAndPartition, value, key, out failedItems,_requiredAcks,_ackTimeoutMs);
-					if(failedItems.Count > 0) throw new ProduceFailedException("Unexpected error occurred.");
+					var result = await SendProduceAsync(topicAndPartition, value, key, _requiredAcks, _ackTimeoutMs, cancellationToken);
+					response = result.Response;
+					var failedItem = result.FailedItem;
+					if(failedItem != null) throw new ProduceFailedException("Unexpected error occurred.");
 					if(response.HasError)
 						throw new ProduceFailedException(response.GetErrors());
 					return response.StatusesByTopic[topic][0];
 				}
 				catch(TopicCreatedNoLeaderYetException)
 				{
-					Thread.Sleep(attempt*200);
+					Thread.Sleep(attempt * 200);
 				}
 				attempt++;
 			}
 			throw new LeaderNotAvailableException(topicAndPartition);
 		}
-	}	
+	}
 }

@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Kafka.Client.Api;
 using Kafka.Client.Exceptions;
+using Kafka.Client.Utils;
 
 namespace Kafka.Client
 {
@@ -20,13 +23,13 @@ namespace Kafka.Client
 
 		protected IKafkaClient Client { get { return _client; } }
 
-		protected ProduceResponse SendProduce(TopicAndPartition topicAndPartition, byte[] value, byte[] key, out IReadOnlyList<TopicAndPartitionValue<IEnumerable<IMessage>>> failedItems, RequiredAck requiredAcks, int ackTimeoutMs)
+		protected async Task<SingleResponseResult<ProduceResponse, IEnumerable<IMessage>>> SendProduceAsync(TopicAndPartition topicAndPartition, byte[] value, byte[] key, RequiredAck requiredAcks, int ackTimeoutMs, CancellationToken cancellationToken)
 		{
 			var messageForTopicAndPartition = new[] {new TopicAndPartitionValue<IEnumerable<IMessage>>(topicAndPartition, new[] {new Message(key, value)})};
-			IReadOnlyCollection<ProduceResponse> responses;
+			ResponseResult<ProduceResponse, IEnumerable<IMessage>> result;
 			try
 			{
-				responses = SendProduce(messageForTopicAndPartition, out failedItems,requiredAcks,ackTimeoutMs);
+				result = await SendProduceAsync(messageForTopicAndPartition,requiredAcks,ackTimeoutMs, cancellationToken);
 			}
 			catch(KafkaMetaDataException e)
 			{
@@ -38,16 +41,16 @@ namespace Kafka.Client
 				}
 				throw;
 			}
-			var produceResponse = responses.First();
+			var produceResponse = new SingleResponseResult<ProduceResponse, IEnumerable<IMessage>>(result.Responses.FirstOrDefault(), result.FailedItems.FirstOrDefault());
 
 			return produceResponse;
 		}
 
-		protected IReadOnlyCollection<ProduceResponse> SendProduce(IEnumerable<TopicAndPartitionValue<IEnumerable<IMessage>>> messages, out IReadOnlyList<TopicAndPartitionValue<IEnumerable<IMessage>>> failedItems, RequiredAck requiredAcks,int ackTimeoutMs)
+		protected Task<ResponseResult<ProduceResponse, IEnumerable<IMessage>>> SendProduceAsync(IEnumerable<TopicAndPartitionValue<IEnumerable<IMessage>>> messages, RequiredAck requiredAcks, int ackTimeoutMs, CancellationToken cancellationToken)
 		{
-			var responses = Client.SendToLeader(messages, (items, requestid) =>
+			var responses = Client.SendToLeaderAsync(messages, (items, requestid) =>
 				new ProduceRequest(items, requiredAcks, ackTimeoutMs),
-				ProduceResponse.Deserialize, out failedItems, _allowTopicsToBeCreated);
+				ProduceResponse.Deserialize, cancellationToken, allowTopicsToBeCreated: _allowTopicsToBeCreated);
 
 			return responses;
 

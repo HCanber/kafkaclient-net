@@ -2,6 +2,8 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Kafka.Client.Api;
 using Kafka.Client.Exceptions;
 using Kafka.Client.JetBrainsAnnotations;
@@ -32,11 +34,12 @@ namespace Kafka.Client
 			_metadataByTopic.TryRemove(topic, out partitions);
 		}
 
-		public TopicMetadata GetMetadataForTopic([NotNull] string topic, bool useCachedValues = true)
+		public async Task<TopicMetadata> GetMetadataForTopic([NotNull] string topic, CancellationToken cancellationToken, bool useCachedValues = true)
 		{
 			if(topic == null) throw new ArgumentNullException("topic");
 			if(topic.Length == 0) throw new ArgumentException("topic");
-			var meta = GetMetaForTopics(new[] { topic }, useCachedValues ? Fetch.OnlyExistingTopicsAllowServer | Fetch.Force : Fetch.OnlyExistingTopicsAllowServer)[0];
+			var metas = await GetMetaForTopicsAsync(new[] {topic}, useCachedValues ? Fetch.OnlyExistingTopicsAllowServer | Fetch.Force : Fetch.OnlyExistingTopicsAllowServer, cancellationToken);
+			var meta =metas[0];
 			switch(meta.Error)
 			{
 				case KafkaError.UnknownTopicOrPartition:
@@ -49,15 +52,15 @@ namespace Kafka.Client
 			return meta;
 		}
 
-		public IReadOnlyList<TopicMetadata> GetRawMetadataForTopics(IReadOnlyCollection<string> topics, bool useCachedValues = true)
+		public Task<IReadOnlyList<TopicMetadata>> GetRawMetadataForTopicsAsync(IReadOnlyCollection<string> topics, CancellationToken cancellationToken, bool useCachedValues = true)
 		{
-			var metas = GetMetaForTopics(topics, useCachedValues ? Fetch.OnlyExistingTopicsAllowServer | Fetch.Force : Fetch.OnlyExistingTopicsAllowServer);
+			var metas = GetMetaForTopicsAsync(topics, useCachedValues ? Fetch.OnlyExistingTopicsAllowServer | Fetch.Force : Fetch.OnlyExistingTopicsAllowServer, cancellationToken);
 			return metas;
 		}
 
-		public IReadOnlyList<TopicItem<IReadOnlyList<int>>> GetPartitionsForTopics(IReadOnlyCollection<string> topics)
+		public async Task<IReadOnlyList<TopicItem<IReadOnlyList<int>>>> GetPartitionsForTopicsAsync(IReadOnlyCollection<string> topics, CancellationToken cancellationToken)
 		{
-			var metaForTopics = GetMetaForTopics(topics, Fetch.OnlyExistingTopicsAllowServer);
+			var metaForTopics = await GetMetaForTopicsAsync(topics, Fetch.OnlyExistingTopicsAllowServer, cancellationToken);
 			var result = new List<TopicItem<IReadOnlyList<int>>>();
 			foreach(var topicMetadata in metaForTopics)
 			{
@@ -69,6 +72,7 @@ namespace Kafka.Client
 			return result;
 		}
 
+
 		/// <summary>
 		/// Gets the leader for the specified topic and partition.
 		/// Returns <c>null</c> if no leader exists.
@@ -76,10 +80,11 @@ namespace Kafka.Client
 		/// <returns>The leader. <c>null</c> if no leader exists.</returns>
 		/// <exception cref="UnknownTopicException">Thrown if topic do not exist</exception>
 		/// <exception cref="KafkaInvalidPartitionException">Thrown if partition do not exist</exception>
-		public Broker GetLeader(TopicAndPartition topicAndPartition, bool allowTopicsToBeCreated = false)
+		public async Task<Broker> GetLeaderAsync(TopicAndPartition topicAndPartition, CancellationToken cancellationToken, bool allowTopicsToBeCreated = false)
 		{
 			var topic = topicAndPartition.Topic;
-			var meta = GetMetaForTopics(new[] { topic }, allowTopicsToBeCreated ? Fetch.AllowFetchFromServer : Fetch.OnlyExistingTopicsAllowServer)[0];
+			var metas = await GetMetaForTopicsAsync(new[] { topic }, allowTopicsToBeCreated ? Fetch.AllowFetchFromServer : Fetch.OnlyExistingTopicsAllowServer, cancellationToken);
+			var meta = metas[0];
 			switch(meta.Error)
 			{
 				case KafkaError.UnknownTopicOrPartition:
@@ -100,7 +105,7 @@ namespace Kafka.Client
 			return partitionMetadata.Leader;
 		}
 
-		private IReadOnlyList<TopicMetadata> GetMetaForTopics(IReadOnlyCollection<string> topics, Fetch fetch, int retries = 1)
+		private async Task<IReadOnlyList<TopicMetadata>> GetMetaForTopicsAsync(IReadOnlyCollection<string> topics, Fetch fetch, CancellationToken cancellationToken, int retries = 1)
 		{
 			var onlyExistingTopics = fetch.HasFlag(Fetch.OnlyExistingTopics);
 			var allowFetch = fetch.HasFlag(Fetch.AllowFetchFromServer);
@@ -112,7 +117,7 @@ namespace Kafka.Client
 				if(allowFetch)
 				{
 					//Always fetch the latest from the server if we're allowed
-					return GetAndCacheMetadataForTopics(null);
+					return await GetAndCacheMetadataForTopicsAsync(null, cancellationToken);
 				}
 				return _metadataByTopic.Values.ToImmutableList();
 			}
@@ -131,7 +136,7 @@ namespace Kafka.Client
 			}
 			if(shouldRefreshFirst && allowFetch)
 			{
-				GetAndCacheMetadataForTopics(onlyExistingTopics ? null : topics);
+				await GetAndCacheMetadataForTopicsAsync(onlyExistingTopics ? null : topics, cancellationToken);
 				retries = 0;	//No need to retry since we already have updated the cache with the latest
 			}
 
@@ -160,7 +165,7 @@ namespace Kafka.Client
 				var shouldRetry = allowFetch && retries > 0;
 				if(shouldRetry)
 				{
-					GetAndCacheMetadataForTopics(onlyExistingTopics ? null : missing.Concat(errors.Select(m => m.Topic)).ToList());
+					await GetAndCacheMetadataForTopicsAsync(onlyExistingTopics ? null : missing.Concat(errors.Select(m => m.Topic)).ToList(), cancellationToken);
 					retries = retries - 1;
 				}
 				else
@@ -173,9 +178,9 @@ namespace Kafka.Client
 			}
 		}
 
-		private IReadOnlyList<TopicMetadata> GetAndCacheMetadataForTopics(IReadOnlyCollection<string> topics)
+		private async Task<IReadOnlyList<TopicMetadata>> GetAndCacheMetadataForTopicsAsync(IReadOnlyCollection<string> topics, CancellationToken cancellationToken)
 		{
-			var metadatas = LoadMetaForTopics(topics);
+			var metadatas = await LoadMetaForTopicsAsync(topics, cancellationToken);
 			foreach(var metadata in metadatas)
 			{
 				//Only store metadata for topics that do exist. Otherwise the dictionary could be filled 
@@ -188,9 +193,9 @@ namespace Kafka.Client
 			return metadatas;
 		}
 
-		private IReadOnlyList<TopicMetadata> LoadMetaForTopics(IReadOnlyCollection<string> topics)
+		private async Task<IReadOnlyList<TopicMetadata>> LoadMetaForTopicsAsync(IReadOnlyCollection<string> topics, CancellationToken cancellationToken)
 		{
-			var response = _client.SendMetadataRequestForTopics(topics ?? new string[0]);
+			var response =await _client.SendMetadataRequestForTopicsAsync(topics ?? new string[0], cancellationToken);
 
 			return response.TopicMetadatas;
 		}

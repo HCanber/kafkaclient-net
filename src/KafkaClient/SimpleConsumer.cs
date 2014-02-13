@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Common.Logging;
 using Kafka.Client.Api;
 using Kafka.Client.Exceptions;
@@ -38,15 +40,15 @@ namespace Kafka.Client
 			_arrOnlyPartitions = onlyTheesePartitions == null ? null : onlyTheesePartitions.OrderBy(i => i).ToArray();
 		}
 
-		private IReadOnlyDictionary<int, long> GetOffsets(bool force = false)
+		private async Task<IReadOnlyDictionary<int, long>> GetOffsetsAsync(CancellationToken cancellationToken, bool force = false)
 		{
 			if(!_offsetsInitialized || force)
 			{
+				var partitions = await GetPartitionsForTopicAsync(cancellationToken);
 				lock(_offsetInitLock)
 				{
 					if(!_offsetsInitialized || force)
 					{
-						var partitions = GetPartitionsForTopic();
 						if(_arrOnlyPartitions != null)
 						{
 							partitions = partitions.Where(p => Array.BinarySearch(_arrOnlyPartitions, p) >= 0).ToList();
@@ -69,20 +71,28 @@ namespace Kafka.Client
 		}
 
 
-		public TopicMetadata GetMetadata()
+		public Task<TopicMetadata> GetMetadataAsync(CancellationToken cancellationToken)
 		{
-			return Client.GetMetadataForTopic( _topic);
+			return Client.GetMetadataForTopicAsync(_topic, cancellationToken);
 		}
 
 		public IEnumerable<IMessageSetItem> GetMessages()
 		{
-			var offsetsPerPartition = GetOffsets();
+			return GetMessagesAsync(CancellationToken.None).Result;
+		}
+
+		public async Task<IEnumerable<IMessageSetItem>> GetMessagesAsync(CancellationToken cancellationToken)
+		{
+			var offsetsPerPartition = await GetOffsetsAsync(cancellationToken);
 			var partitionsToGet = offsetsPerPartition.Keys.ToList();
+			var messageSetItems = new List<IMessageSetItem>();
 			while(partitionsToGet.Count > 0)
 			{
-				IReadOnlyList<TopicAndPartitionValue<long>> failedItems;
 				var partitionAndOffsets = partitionsToGet.Select(p => new KeyValuePair<int, long>(p, offsetsPerPartition[p]));
-				var responses = FetchMessages(_topic, partitionAndOffsets, out failedItems, fetchMaxBytes: _fetchSizeBytes, maxWaitForMessagesInMs: _maxWaitTimeInMs);
+				var result = await FetchMessagesAsync(_topic, partitionAndOffsets, fetchMaxBytes: _fetchSizeBytes, cancellationToken: cancellationToken, maxWaitForMessagesInMs: _maxWaitTimeInMs);
+				var responses = result.Responses;
+				var failedItems = result.FailedItems;
+
 				partitionsToGet.Clear();
 				if(failedItems != null && failedItems.Count > 0)
 					throw new FetchFailed(failedItems.Select(p => Tuple.Create(p.TopicAndPartition, (FetchResponsePartitionData)null)).ToList(), "Failures occurred when fetching partitions and offsets: " + string.Join(", ", failedItems.Select(t => t.TopicAndPartition + ":" + t.Value)));
@@ -90,7 +100,6 @@ namespace Kafka.Client
 				var errorResponses = responses.SelectMany(r => r.Data).Where(kvp => kvp.Value.HasError).Select(kvp => Tuple.Create(kvp.Key, kvp.Value)).ToList();
 				if(errorResponses.Count > 0)
 					throw new FetchFailed(errorResponses, "Fetch Error: " + string.Join(", ", errorResponses.Select(t => t.Item1 + ":" + t.Item2.Error)));
-
 
 				foreach(var response in responses)
 				{
@@ -126,7 +135,7 @@ namespace Kafka.Client
 								{
 									UpdateOffset(partition, offset + 1);
 								}
-								yield return messageSetItem;
+								messageSetItems.Add(messageSetItem);
 							}
 						}
 					}
@@ -136,12 +145,14 @@ namespace Kafka.Client
 					_Logger.TraceFormat(string.Format("Retrying the following partitions for topic \"{0}\": {1}", _topic, string.Join(",", partitionsToGet)));
 				}
 			}
+			return messageSetItems;
 		}
 
 		[NotNull]
-		private IReadOnlyCollection<int> GetPartitionsForTopic()
+		private async Task<IReadOnlyCollection<int>> GetPartitionsForTopicAsync(CancellationToken cancellationToken)
 		{
-			var topicItem = Client.GetPartitionsForTopics(new[] { _topic }).First();
+			var topics = await Client.GetPartitionsForTopicsAsync(new[] { _topic }, cancellationToken);
+			var topicItem = topics.First();
 			if(topicItem.Item==null) throw new UnknownTopicException(topicItem.Topic);
 			return topicItem.Item;
 		}

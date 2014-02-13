@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using Kafka.Client.IO;
 using Kafka.Client.Utils;
 
@@ -44,9 +45,19 @@ namespace Kafka.Client.Api
 
 		public void WriteTo(Stream stream, string clientId, int correlationId)
 		{
-			var writer = new KafkaBinaryWriter(stream);
-			WriteTo(writer,clientId,correlationId);
+			WriteTo(stream,clientId,correlationId,CancellationToken.None);
+		}
+
+		public void WriteTo(Stream stream, string clientId, int correlationId, CancellationToken cancellationToken)
+		{
+			var writer = new KafkaBinaryWriter(stream,cancellationToken);
+			WriteTo(writer, clientId, correlationId);
 			Debug.Assert(writer.NumberOfWrittenBytes == GetSize(clientId), "Did not write the expected number of bytes.", "Expected:  {0}\nActual:    {1}", GetSize(clientId), writer.NumberOfWrittenBytes);
+		}
+
+		public override string ToString()
+		{
+			return GetType().Name;
 		}
 	}
 }

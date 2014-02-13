@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading;
 
 namespace Kafka.Client.IO
 {
@@ -6,5 +7,6 @@ namespace Kafka.Client.IO
 	{
 		int GetSize();
 		void WriteTo(Stream stream, int correlationId);
+		void WriteTo(Stream stream, int correlationId, CancellationToken cancellationToken);
 	}
 }
