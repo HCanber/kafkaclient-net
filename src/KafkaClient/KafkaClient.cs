@@ -20,21 +20,23 @@ namespace Kafka.Client
 		private readonly int _readTimeoutMs;
 		private readonly int _readBufferSize;
 		private readonly int _writeBufferSize;
+		private readonly TraceLogRequests _requestsToLog;
 		private readonly MetadataHolder _metadata;
 
-		public KafkaClient(string host, ushort port, string clientId, int readTimeoutMs = DefaultReadTimeoutMs, int readBufferSize = DefaultBufferSize, int writeBufferSize = DefaultBufferSize)
-			: this(new HostPort(host, port), clientId, readTimeoutMs, readBufferSize, writeBufferSize)
+		public KafkaClient(string host, ushort port, string clientId, int readTimeoutMs = DefaultReadTimeoutMs, int readBufferSize = DefaultBufferSize, int writeBufferSize = DefaultBufferSize, TraceLogRequests requestsToLog = TraceLogRequests.None)
+			: this(new HostPort(host, port), clientId, readTimeoutMs, readBufferSize, writeBufferSize, requestsToLog)
 		{
 			//Intentionally left blank
 		}
 
-		public KafkaClient(HostPort hostPort, string clientId, int readTimeoutMs = DefaultReadTimeoutMs, int readBufferSize = DefaultBufferSize, int writeBufferSize = DefaultBufferSize)
+		public KafkaClient(HostPort hostPort, string clientId, int readTimeoutMs = DefaultReadTimeoutMs, int readBufferSize = DefaultBufferSize, int writeBufferSize = DefaultBufferSize, TraceLogRequests requestsToLog=TraceLogRequests.None)
 		{
 			_hostPort = hostPort;
 			_clientId = clientId;
 			_readTimeoutMs = readTimeoutMs;
 			_readBufferSize = readBufferSize;
 			_writeBufferSize = writeBufferSize;
+			_requestsToLog = requestsToLog;
 			_metadata = new MetadataHolder(this);
 		}
 
@@ -60,9 +62,9 @@ namespace Kafka.Client
 			return CreateConnection(hostPort, _readBufferSize, _writeBufferSize, _readTimeoutMs);
 		}
 
-		private static IAsyncKafkaConnection CreateConnection(HostPort hostPort, int readBufferSize, int writeBufferSize, int readTimeoutMs)
+		private IAsyncKafkaConnection CreateConnection(HostPort hostPort, int readBufferSize, int writeBufferSize, int readTimeoutMs)
 		{
-			var connection = new AsyncKafkaConnection(hostPort, readBufferSize, writeBufferSize, readTimeoutMs, autoConnect: true);
+			var connection = new AsyncKafkaConnection(hostPort, readBufferSize, writeBufferSize, readTimeoutMs, autoConnect: true, requestsToLog: _requestsToLog);
 			return connection;
 		}
 

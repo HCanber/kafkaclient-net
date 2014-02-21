@@ -19,6 +19,7 @@ namespace Kafka.Client.IO
 
 		public override void Flush()
 		{
+			_stream1.Flush();
 			_stream2.Flush();
 		}
 

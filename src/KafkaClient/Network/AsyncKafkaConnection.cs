@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
+using Kafka.Client.Api;
 using Kafka.Client.Exceptions;
 using Kafka.Client.IO;
 using Kafka.Client.JetBrainsAnnotations;
@@ -28,6 +29,7 @@ namespace Kafka.Client.Network
 		private readonly int _readBufferSize;
 		private readonly int _writeBufferSize;
 		private readonly int _readTimeoutMs;
+		private readonly TraceLogRequests _requestsToLog;
 		private readonly TcpClient _client;
 		private readonly byte[] _sizeBuffer = new byte[BitConversion.IntSize];
 		private readonly int _id;
@@ -42,13 +44,14 @@ namespace Kafka.Client.Network
 		private readonly CancellationToken _mainCancellationToken;
 
 
-		public AsyncKafkaConnection(HostPort hostPort, int readBufferSize = UseDefaultBufferSize, int writeBufferSize = UseDefaultBufferSize, int readTimeoutMs = DefaultReadTimeoutMs, TaskFactory taskFactory = DefaultTaskFactory, TaskScheduler taskScheduler = DefaultTaskScheduler, bool autoConnect = true)
+		public AsyncKafkaConnection(HostPort hostPort, int readBufferSize = UseDefaultBufferSize, int writeBufferSize = UseDefaultBufferSize, int readTimeoutMs = DefaultReadTimeoutMs, TaskFactory taskFactory = DefaultTaskFactory, TaskScheduler taskScheduler = DefaultTaskScheduler, bool autoConnect = true, TraceLogRequests requestsToLog=TraceLogRequests.None)
 		{
 			_id = Interlocked.Increment(ref _nextAvailableId);
 			_hostPort = hostPort;
 			_readBufferSize = readBufferSize;
 			_writeBufferSize = writeBufferSize;
 			_readTimeoutMs = readTimeoutMs;
+			_requestsToLog = requestsToLog;
 			_client = new TcpClient
 			{
 				ReceiveTimeout = readTimeoutMs,
@@ -482,12 +485,13 @@ namespace Kafka.Client.Network
 				Stream stream;
 				MemoryStream traceStream = null;
 
+				var requestMessageSize = writeable.GetSize();
 				//Check if the network package should be logged.
-				var shouldLogNetworkPackage = _Logger.IsTraceEnabled;
+				var shouldLogNetworkPackage = _Logger.IsTraceEnabled && ShouldLog(writeable.ApiKey);
 				if(shouldLogNetworkPackage)
 				{
 					//Create a new stream, and wrap it and the existing NetworkStream with a stream that writes to both
-					traceStream = new MemoryStream();
+					traceStream = new MemoryStream(requestMessageSize);
 					stream = new DualWriteableStream(networkStream, traceStream);
 				}
 				else
@@ -496,7 +500,7 @@ namespace Kafka.Client.Network
 				}
 
 				//Serialize to stream
-				var serializedSize = BitConversion.GetBigEndianBytes(writeable.GetSize());
+				var serializedSize = BitConversion.GetBigEndianBytes(requestMessageSize);
 				stream.Write(serializedSize, 0, BitConversion.IntSize);
 				writeable.WriteTo(stream, correlationId);
 
@@ -529,6 +533,35 @@ namespace Kafka.Client.Network
 		private void Swallow(Action action, Func<Exception, string> createMessage)
 		{
 			_Logger.SwallowAsWarning(action, createMessage);
+		}
+
+		private bool ShouldLog(RequestApiKeys apiKey)
+		{
+			switch(apiKey)
+			{
+				case RequestApiKeys.Produce:
+					return _requestsToLog.HasFlag(TraceLogRequests.Produce);
+				case RequestApiKeys.Fetch:
+					return _requestsToLog.HasFlag(TraceLogRequests.Fetch);
+				case RequestApiKeys.Offsets:
+					return _requestsToLog.HasFlag(TraceLogRequests.Offsets);
+				case RequestApiKeys.Metadata:
+					return _requestsToLog.HasFlag(TraceLogRequests.Metadata);
+				case RequestApiKeys.LeaderAndIsr:
+					return _requestsToLog.HasFlag(TraceLogRequests.LeaderAndIsr);
+				case RequestApiKeys.StopReplica:
+					return _requestsToLog.HasFlag(TraceLogRequests.StopReplica);
+				case RequestApiKeys.UpdateMetadata:
+					return _requestsToLog.HasFlag(TraceLogRequests.UpdateMetadata);
+				case RequestApiKeys.ControlledShutdown:
+					return _requestsToLog.HasFlag(TraceLogRequests.ControlledShutdown);
+				case RequestApiKeys.OffsetCommit:
+					return _requestsToLog.HasFlag(TraceLogRequests.OffsetCommit);
+				case RequestApiKeys.OffsetFetch:
+					return _requestsToLog.HasFlag(TraceLogRequests.OffsetFetch);
+				default:
+					throw new ArgumentOutOfRangeException("apiKey");
+			}
 		}
 
 		public override string ToString()

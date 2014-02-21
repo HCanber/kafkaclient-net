@@ -74,6 +74,7 @@
     <Compile Include="ResponseResult.cs" />
     <Compile Include="SimpleProducer.cs" />
     <Compile Include="SingleResponseResult.cs" />
+    <Compile Include="TraceLogRequests.cs" />
     <Compile Include="Utils\EmptyReadOnly.cs" />
     <Compile Include="Utils\JetBrainsAnnotations.cs" />
     <Compile Include="KafkaClient.cs" />

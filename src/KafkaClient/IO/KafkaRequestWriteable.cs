@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Threading;
+using Kafka.Client.Api;
 
 namespace Kafka.Client.IO
 {
@@ -38,5 +39,7 @@ namespace Kafka.Client.IO
 		{
 			return _request.GetNameForDebug();			
 		}
+
+		public RequestApiKeys ApiKey { get { return _request.ApiKey; } }
 	}
 }
