@@ -8,5 +8,6 @@ namespace Kafka.Client.IO
 		int GetSize(string clientId);
 		void WriteTo(Stream stream, string clientId, int correlationId);
 		void WriteTo(Stream stream, string clientId, int correlationId, CancellationToken cancellationToken);
+		string GetNameForDebug();
 	}
 }

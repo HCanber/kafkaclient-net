@@ -31,7 +31,12 @@ namespace Kafka.Client.IO
 
 		public override string ToString()
 		{
-			return _request.ToString();
+			return GetNameForDebug();
+		}
+
+		public string GetNameForDebug()
+		{
+			return _request.GetNameForDebug();			
 		}
 	}
 }

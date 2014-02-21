@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.IO;
 using System.Net.Sockets;
+using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,7 +40,6 @@ namespace Kafka.Client.Network
 		private readonly ManualResetEventSlim _userHasCalledConnectGate;
 		private readonly CancellationTokenSource _cancellationTokenSource;
 		private readonly CancellationToken _mainCancellationToken;
-		private NetworkStream _networkStream;
 
 
 		public AsyncKafkaConnection(HostPort hostPort, int readBufferSize = UseDefaultBufferSize, int writeBufferSize = UseDefaultBufferSize, int readTimeoutMs = DefaultReadTimeoutMs, TaskFactory taskFactory = DefaultTaskFactory, TaskScheduler taskScheduler = DefaultTaskScheduler, bool autoConnect = true)
@@ -86,7 +88,7 @@ namespace Kafka.Client.Network
 		public Task ConnectAsync()
 		{
 			//Connect the TcpClient
-			var task = _client.ConnectAsync(_hostPort.Host, _hostPort.Port);
+			var task = InternalConnectDoNotCallThis();
 			//When connect, signal to the rest of the class that it may continue.
 			task.Then(t => _userHasCalledConnectGate.Set());
 			return task;
@@ -105,7 +107,7 @@ namespace Kafka.Client.Network
 					}
 				}
 			}
-			return _networkStream;
+			return _client.GetStream();
 		}
 
 		//This should only be called from  EnsureConnected and ConnectAsync
@@ -113,7 +115,6 @@ namespace Kafka.Client.Network
 		{
 			await _client.ConnectAsync(_hostPort.Host, _hostPort.Port);
 			_Logger.DebugFormat("Connected connection [{0}]", _id);
-			_networkStream = _client.GetStream();
 		}
 
 		public void Disconnect()
@@ -217,7 +218,7 @@ namespace Kafka.Client.Network
 					{
 						//An error occurred while reading the size. 
 						//It could be that _mainCancellationToken was canceled, in which case the while loop will stop
-						//In case of another error, the connection has been reset so we're good to go anouther round
+						//In case of another error, the connection has been reset so we're good to go another round
 						continue;
 					}
 					var size = nullableSize.Value;
@@ -268,6 +269,17 @@ namespace Kafka.Client.Network
 							{
 								_Logger.ErrorFormat("Could not find a {1} for message with correlation id={0}.", correlationId, typeof(MessageContainer));
 							}
+						}
+						if(_Logger.IsTraceEnabled)
+						{
+							_Logger.Trace(log =>
+							{
+								var sb = new StringBuilder();
+								sb.Append("Received partial: ");
+								sb.AppendAsHexString(_sizeBuffer);
+								sb.AppendAsHexString(buffer, 0, bytesRead);
+								log(sb.ToString());
+							});
 						}
 						numberOfConsecutiveReadErrors++;
 					}
@@ -377,7 +389,7 @@ namespace Kafka.Client.Network
 
 					if(message != null)
 					{
-						_Logger.Debug(h => h("Request {0}", message));
+						_Logger.Debug(h => h("Processing {0}", message));
 						HandleMessage(message);
 					}
 				}
@@ -415,7 +427,7 @@ namespace Kafka.Client.Network
 				if(e is OperationCanceledException)
 					message.TaskCompletionSource.TrySetCanceled();
 				else
-					message.TaskCompletionSource.TrySetException(new SendFailedException(string.Format("Send request {3} to Kafka {0} on connection [{1}] failed. {2} See inner exception for details.", _hostPort, _id, e.Message, requestId)));
+					message.TaskCompletionSource.TrySetException(new SendFailedException(string.Format("Send request {3} to Kafka {0} on connection [{1}] failed. {2} See inner exception for details.", _hostPort, _id, e.Message, requestId), e));
 
 				//Remove the messagecontainer from internal dictionary, as we will not need to process any responses
 				MessageContainer ignored;
@@ -432,6 +444,7 @@ namespace Kafka.Client.Network
 				try
 				{
 					SendToServer(writeable, correlationId);
+					_Logger.DebugFormat("Sent {2} bytes for request {0} correlation id={4} to Kafka {1} on connection [{3}]", requestId, _hostPort, length, _id, correlationId);
 					return;
 				}
 				catch(OperationCanceledException e)
@@ -466,9 +479,40 @@ namespace Kafka.Client.Network
 			{
 				_isSendingGate.Set();
 				var networkStream = EnsureConnectedAndGetStream();
+				Stream stream;
+				MemoryStream traceStream = null;
+
+				//Check if the network package should be logged.
+				var shouldLogNetworkPackage = _Logger.IsTraceEnabled;
+				if(shouldLogNetworkPackage)
+				{
+					//Create a new stream, and wrap it and the existing NetworkStream with a stream that writes to both
+					traceStream = new MemoryStream();
+					stream = new DualWriteableStream(networkStream, traceStream);
+				}
+				else
+				{
+					stream = networkStream;
+				}
+
+				//Serialize to stream
 				var serializedSize = BitConversion.GetBigEndianBytes(writeable.GetSize());
-				networkStream.Write(serializedSize, 0, BitConversion.IntSize);
-				writeable.WriteTo(networkStream, correlationId);
+				stream.Write(serializedSize, 0, BitConversion.IntSize);
+				writeable.WriteTo(stream, correlationId);
+
+				//Log the networkPackages
+				if(shouldLogNetworkPackage)
+				{
+					_Logger.Trace(log =>
+					{
+						var sb = new StringBuilder();
+						var length = traceStream.Length;
+						sb.Append("Sent ").Append(writeable.GetNameForDebug()).Append(' ').Append(length).Append(" bytes: ");
+						var buffer = traceStream.GetBuffer();
+						sb.AppendAsHexString(buffer,0,length);
+						log(sb.ToString());
+					});
+				}
 			}
 			finally
 			{
@@ -521,7 +565,7 @@ namespace Kafka.Client.Network
 			public override string ToString()
 			{
 				var sb = new StringBuilder();
-				sb.Append("Request ").Append(_requestId).Append(", <").Append(_messageWriteable).Append('>');
+				sb.Append("Request ").Append(_requestId).Append(", <").Append(_messageWriteable.GetNameForDebug()).Append('>');
 				if(_cancellationToken.IsCancellationRequested)
 					sb.Append(" CANCELED");
 				return sb.ToString();

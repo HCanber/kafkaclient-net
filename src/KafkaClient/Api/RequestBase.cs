@@ -55,9 +55,14 @@ namespace Kafka.Client.Api
 			Debug.Assert(writer.NumberOfWrittenBytes == GetSize(clientId), "Did not write the expected number of bytes.", "Expected:  {0}\nActual:    {1}", GetSize(clientId), writer.NumberOfWrittenBytes);
 		}
 
-		public override string ToString()
+		public virtual string GetNameForDebug()
 		{
 			return GetType().Name;
+		}
+
+		public override string ToString()
+		{
+			return GetNameForDebug();
 		}
 	}
 }

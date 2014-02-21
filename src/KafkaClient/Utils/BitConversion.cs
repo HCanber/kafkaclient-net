@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 namespace Kafka.Client.Utils
 {
@@ -174,6 +175,34 @@ namespace Kafka.Client.Utils
 					highCtr -= 1;
 				}
 			}
+		}
+
+		public static void AppendAsHexString(this StringBuilder sb, byte[] bytes, string delimiter = ",", string prefix = "0x")
+		{
+			if(bytes == null) return;
+			AppendAsHexString(sb, bytes, 0, bytes.Length, delimiter,prefix);
+		}
+
+		public static void AppendAsHexString(this StringBuilder sb, byte[] bytes, long startIndex, long length, string delimiter = ",", string prefix = "0x")
+		{
+			if(bytes == null) return;
+			for(var i = startIndex; i < length; i++)
+			{
+				var b = bytes[i];
+				sb.Append(prefix);
+				sb.Append(GetHexValue(b/16));
+				sb.Append(GetHexValue(b%16));
+				sb.Append(delimiter);
+			}
+		}
+
+
+		private static char GetHexValue(int i)
+		{
+			if(i < 10)
+				return (char)(i + 48);
+			else
+				return (char)(i - 10 + 97);
 		}
 	}
 
