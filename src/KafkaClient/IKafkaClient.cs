@@ -40,5 +40,6 @@ namespace Kafka.Client
 		Task<IReadOnlyList<TopicMetadata>> GetRawMetadataForTopicsAsync(IReadOnlyCollection<string> topics, CancellationToken cancellationToken, bool useCachedValues = true);
 
 		Task<IReadOnlyList<TopicItem<IReadOnlyList<int>>>> GetPartitionsForTopicsAsync(IReadOnlyCollection<string> topics, CancellationToken cancellationToken);
+		void Close();
 	}
 }

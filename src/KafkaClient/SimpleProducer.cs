@@ -53,6 +53,9 @@ namespace Kafka.Client
 				attempt++;
 			}
 			throw new LeaderNotAvailableException(topicAndPartition);
+		public void Close()
+		{
+			Client.Close();
 		}
 	}
 }
