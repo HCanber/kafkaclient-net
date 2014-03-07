@@ -1,9 +1,11 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Kafka.Client.Api;
+using Kafka.Client.JetBrainsAnnotations;
 using Kafka.Client.Network;
 
 namespace Kafka.Client
@@ -13,6 +15,8 @@ namespace Kafka.Client
 		private static readonly ILog _Logger = LogManager.GetCurrentClassLogger();
 		public const int DefaultBufferSize = AsyncKafkaConnection.UseDefaultBufferSize;
 		public const int DefaultReadTimeoutMs = 120 * 1000;
+		
+		//TODO: Add some kind of automatic removal of unused connections from _connectionsByHostPort. Maybe periodically check Meta Data and remove non-replicas and non-leaders
 		private readonly ConcurrentDictionary<HostPort, IAsyncKafkaConnection> _connectionsByHostPort = new ConcurrentDictionary<HostPort, IAsyncKafkaConnection>();
 
 		private readonly HostPort _hostPort;
@@ -29,8 +33,11 @@ namespace Kafka.Client
 			//Intentionally left blank
 		}
 
-		public KafkaClient(HostPort hostPort, string clientId, int readTimeoutMs = DefaultReadTimeoutMs, int readBufferSize = DefaultBufferSize, int writeBufferSize = DefaultBufferSize, TraceLogRequests requestsToLog=TraceLogRequests.None)
+		public KafkaClient([NotNull] HostPort hostPort, [NotNull] string clientId, int readTimeoutMs = DefaultReadTimeoutMs, int readBufferSize = DefaultBufferSize, int writeBufferSize = DefaultBufferSize, TraceLogRequests requestsToLog=TraceLogRequests.None)
 		{
+			if(hostPort == null) throw new ArgumentNullException("hostPort");
+			if(clientId == null) throw new ArgumentNullException("clientId");
+			if(clientId.Length==0) throw new ArgumentException("ClientId must be specified. It was \"\".","clientId");
 			_hostPort = hostPort;
 			_clientId = clientId;
 			_readTimeoutMs = readTimeoutMs;
@@ -65,7 +72,17 @@ namespace Kafka.Client
 		private IAsyncKafkaConnection CreateConnection(HostPort hostPort, int readBufferSize, int writeBufferSize, int readTimeoutMs)
 		{
 			var connection = new AsyncKafkaConnection(hostPort, readBufferSize, writeBufferSize, readTimeoutMs, autoConnect: true, requestsToLog: _requestsToLog);
+			connection.Connected += HandleConnected;
 			return connection;
+		}
+
+		private void HandleConnected(object sender, EventArgs e)
+		{
+			var connection = (AsyncKafkaConnection)sender;
+
+			//Either we connected for the first time, or we reconnected. If we reconnected it might be because Kafka closed the connection for a produce request
+			//with requiredAcks=0 that failed. In that case we need to drop all metadata related to that host.
+			_metadata.ResetMetadataForHost(connection.HostPort);
 		}
 
 		protected override ILog Logger

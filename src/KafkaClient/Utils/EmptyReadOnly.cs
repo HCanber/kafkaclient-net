@@ -7,7 +7,7 @@ namespace Kafka.Client.Utils
 	public class EmptyReadOnly<T> : IReadOnlyList<T>
 	{
 		private static readonly EmptyReadOnly<T> _Instance = new EmptyReadOnly<T>();
-		private static readonly EmtpyEnumerator _EnumeratorInstance=new EmtpyEnumerator();
+		private static readonly EmptyEnumerator _EnumeratorInstance=new EmptyEnumerator();
 
 		public IEnumerator<T> GetEnumerator()
 		{
@@ -25,7 +25,7 @@ namespace Kafka.Client.Utils
 
 		public T this[int index] { get { throw new IndexOutOfRangeException(); } }
 
-		private class EmtpyEnumerator : IEnumerator<T>
+		private class EmptyEnumerator : IEnumerator<T>
 		{
 			public void Dispose()
 			{

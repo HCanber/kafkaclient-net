@@ -52,6 +52,7 @@
     <Compile Include="Api\TopicItem.cs" />
     <Compile Include="Api\PartitionItem.cs" />
     <Compile Include="Api\ProduceRequest.cs" />
+    <Compile Include="Exceptions\IRetryableError.cs" />
     <Compile Include="Exceptions\KafkaMetaDataException.cs" />
     <Compile Include="Exceptions\LeaderNotAvailableException.cs" />
     <Compile Include="Exceptions\ProduceFailedException.cs" />
@@ -59,6 +60,7 @@
     <Compile Include="Exceptions\TopicCreatedNoLeaderYetException.cs" />
     <Compile Include="Exceptions\UnknownPartitionException.cs" />
     <Compile Include="Exceptions\UnknownTopicException.cs" />
+    <Compile Include="FailedMessages.cs" />
     <Compile Include="IMessage.cs" />
     <Compile Include="IMessageSetItem.cs" />
     <Compile Include="Api\KafkaRequestExtensions.cs" />
@@ -73,7 +75,6 @@
     <Compile Include="ProducerBase.cs" />
     <Compile Include="ResponseResult.cs" />
     <Compile Include="SimpleProducer.cs" />
-    <Compile Include="SingleResponseResult.cs" />
     <Compile Include="TraceLogRequests.cs" />
     <Compile Include="Utils\EmptyReadOnly.cs" />
     <Compile Include="Utils\JetBrainsAnnotations.cs" />

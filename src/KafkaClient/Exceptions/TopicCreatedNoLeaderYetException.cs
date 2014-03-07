@@ -9,10 +9,10 @@ namespace Kafka.Client.Exceptions
 	/// created but no leader is known at this time. Try resending the message.
 	/// </summary>
 	[Serializable]
-	public class TopicCreatedNoLeaderYetException : LeaderNotAvailableException
+	public class TopicCreatedNoLeaderYetException : LeaderNotAvailableException, IRetryableError
 	{
 		public TopicCreatedNoLeaderYetException(TopicAndPartition topicAndPartition) 
-			: base(topicAndPartition, "The topic was created but no leader exists for {0}. Try again in a while.")
+			: base(new[]{topicAndPartition}, "The topic was created but no leader exists for {0}. Try again in a while.")
 		{
 		}
 	}

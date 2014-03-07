@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -117,7 +118,7 @@ namespace Kafka.Client
 		{
 			var payloadsByBroker = await GroupPayloadsByLeader(payloads, allowTopicsToBeCreated, cancellationToken);
 
-			var failed = new List<TopicAndPartitionValue<TPayload>>();
+			var failed = new List<Tuple<TopicAndPartitionValue<TPayload>,Exception>>();
 			var tasks = new List<Tuple<IReadOnlyCollection<TopicAndPartitionValue<TPayload>>, Task<TResponse>,int, HostPort>>();
 			foreach(var kvp in payloadsByBroker)
 			{
@@ -140,7 +141,7 @@ namespace Kafka.Client
 				}
 				catch(Exception ex)
 				{
-					failed.AddRange(tuple.Item1);
+					failed.AddRange(tuple.Item1.Select(payload=>Tuple.Create(payload,ex)));
 					var requestId = tuple.Item3;
 					var hostPort = tuple.Item4;
 					Logger.WarnException(ex, "Error while sending request {0} to server {1}", requestId, hostPort);
@@ -159,15 +160,21 @@ namespace Kafka.Client
 			}).ToList();
 			await Task.WhenAll(tasks.ToArray<Task>());
 
-			var payloadsByBroker = tasks.GroupByToReadOnlyCollectionDictionary(task =>
-			{
-				var t = task.Result;
-				var payload = t.Item1;
-				var leader = t.Item2;
-				if(leader == null) throw new LeaderNotAvailableException(payload.TopicAndPartition);
-				return leader;
-			}, task => task.Result.Item1);
+			var leaderMissing = new List<TopicAndPartition>();
 
+			var payloadsByBroker = tasks.Select(t => t.Result).GroupByToReadOnlyCollectionDictionary(t =>
+				{
+					var leader = t.Item2;
+					return leader;
+				},
+				t => t.Item1,
+				shouldBeIncluded: (t, key) => key != null,
+				handleNotIncluded: (t, _) => leaderMissing.Add(t.Item1.TopicAndPartition)
+				);
+			if(leaderMissing.Count > 0)
+			{
+				throw new LeaderNotAvailableException(new ReadOnlyCollection<TopicAndPartition>(leaderMissing));
+			}
 			return payloadsByBroker;
 		}
 

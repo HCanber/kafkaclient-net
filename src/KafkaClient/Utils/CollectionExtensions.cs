@@ -9,7 +9,7 @@ namespace Kafka.Client.Utils
 	{
 		public static void ForEach<T>(this IEnumerable<T> sequence, Action<T> action)
 		{
-			if(sequence!=null)
+			if(sequence != null)
 			{
 				foreach(var item in sequence)
 				{
@@ -49,45 +49,58 @@ namespace Kafka.Client.Utils
 			return new ReadOnlyCollection<T>(sequence.ToList());
 		}
 
-		public static Dictionary<TKey, IReadOnlyCollection<TValue>> GroupByToReadOnlyCollectionDictionary<TKey, TValue>(this IEnumerable<TValue> sequence, Func<TValue, TKey> keySelector)
+		public static Dictionary<TKey, IReadOnlyCollection<TValue>> GroupByToReadOnlyCollectionDictionary<TKey, TValue>(this IEnumerable<TValue> sequence, Func<TValue, TKey> keySelector, Func<TValue, TKey, bool> shouldBeIncluded = null, Action<TValue, TKey> handleNotIncluded = null)
 		{
-			return GroupByToReadOnlySequenceDictionary<TValue, TKey, TValue, IReadOnlyCollection<TValue>>(sequence, keySelector, value => value);
+			return GroupByToReadOnlySequenceDictionary<TValue, TKey, TValue, IReadOnlyCollection<TValue>>(sequence, keySelector, (key, value) => value, shouldBeIncluded, handleNotIncluded);
 		}
 
-		public static Dictionary<TKey, IReadOnlyCollection<TValue>> GroupByToReadOnlyCollectionDictionary<TSource, TKey, TValue>(this IEnumerable<TSource> sequence, Func<TSource, TKey> keySelector, Func<TSource, TValue> valueSelector)
+		public static Dictionary<TKey, IReadOnlyCollection<TValue>> GroupByToReadOnlyCollectionDictionary<TSource, TKey, TValue>(this IEnumerable<TSource> sequence, Func<TSource, TKey> keySelector, Func<TSource, TValue> valueSelector, Func<TSource, TKey, bool> shouldBeIncluded = null, Action<TSource, TKey> handleNotIncluded = null)
 		{
-			return GroupByToReadOnlySequenceDictionary<TSource, TKey, TValue, IReadOnlyCollection<TValue>>(sequence, keySelector, valueSelector);
+			return GroupByToReadOnlySequenceDictionary<TSource, TKey, TValue, IReadOnlyCollection<TValue>>(sequence, keySelector, (key, value) => valueSelector(value), shouldBeIncluded, handleNotIncluded);
 
 		}
 
-		public static Dictionary<TKey, IReadOnlyList<TValue>> GroupByToReadOnlyListDictionary<TKey, TValue>(this IEnumerable<TValue> sequence, Func<TValue, TKey> keySelector)
+		public static Dictionary<TKey, IReadOnlyList<TValue>> GroupByToReadOnlyListDictionary<TKey, TValue>(this IEnumerable<TValue> sequence, Func<TValue, TKey> keySelector, Func<TValue, TKey, bool> shouldBeIncluded = null, Action<TValue, TKey> handleNotIncluded = null)
 		{
-			return GroupByToReadOnlySequenceDictionary<TValue, TKey, TValue, IReadOnlyList<TValue>>(sequence, keySelector, value=>value);
+			return GroupByToReadOnlySequenceDictionary<TValue, TKey, TValue, IReadOnlyList<TValue>>(sequence, keySelector, (key, value) => value, shouldBeIncluded, handleNotIncluded);
 		}
 
-		public static Dictionary<TKey, IReadOnlyList<TValue>> GroupByToReadOnlyListDictionary<TSource, TKey, TValue>(this IEnumerable<TSource> sequence, Func<TSource, TKey> keySelector, Func<TSource, TValue> valueSelector)
+		public static Dictionary<TKey, IReadOnlyList<TValue>> GroupByToReadOnlyListDictionary<TSource, TKey, TValue>(this IEnumerable<TSource> sequence, Func<TSource, TKey> keySelector, Func<TSource, TValue> valueSelector, Func<TSource, TKey, bool> shouldBeIncluded = null, Action<TSource, TKey> handleNotIncluded = null)
 		{
-			return GroupByToReadOnlySequenceDictionary<TSource, TKey, TValue, IReadOnlyList<TValue>>(sequence, keySelector, valueSelector);
+			return GroupByToReadOnlySequenceDictionary<TSource, TKey, TValue, IReadOnlyList<TValue>>(sequence, keySelector, (key, value) => valueSelector(value), shouldBeIncluded, handleNotIncluded);
 		}
 
 
-		private static Dictionary<TKey, TCollection> GroupByToReadOnlySequenceDictionary<TSource, TKey, TValue, TCollection>(this IEnumerable<TSource> sequence, Func<TSource, TKey> keySelector, Func<TSource, TValue> valueSelector) where TCollection: class, IReadOnlyCollection<TValue>
+		private static Dictionary<TKey, TCollection> GroupByToReadOnlySequenceDictionary<TSource, TKey, TValue, TCollection>(this IEnumerable<TSource> sequence, Func<TSource, TKey> keySelector, Func<TKey, TSource, TValue> valueSelector, Func<TSource, TKey, bool> shouldBeIncluded, Action<TSource, TKey> handleNotIncluded) where TCollection : class, IReadOnlyCollection<TValue>
 		{
 			var dictionary = new Dictionary<TKey, TCollection>();
+			var hasShouldBeIncluded = shouldBeIncluded != null;
+			var shouldHandleNotIncluded = handleNotIncluded != null;
+
 			foreach(var item in sequence)
 			{
 				var key = keySelector(item);
-				var value = valueSelector(item);
-				TCollection collection;
-				if(dictionary.TryGetValue(key, out collection))
+				if(!hasShouldBeIncluded || shouldBeIncluded(item, key))
 				{
-					var readOnly = collection as ReadOnly<TValue>;
-					// ReSharper disable once PossibleNullReferenceException	
-					readOnly.Values.Add(value);
+					var value = valueSelector(key, item);
+					TCollection collection;
+					if(dictionary.TryGetValue(key, out collection))
+					{
+						var readOnly = collection as ReadOnly<TValue>;
+						// ReSharper disable once PossibleNullReferenceException	
+						readOnly.Values.Add(value);
+					}
+					else
+					{
+						dictionary.Add(key, new ReadOnly<TValue>(new List<TValue> { value }) as TCollection);
+					}
 				}
 				else
 				{
-					dictionary.Add(key, new ReadOnly<TValue>(new List<TValue> { value }) as TCollection);
+					if(shouldHandleNotIncluded)
+					{
+						handleNotIncluded(item, key);
+					}
 				}
 			}
 			return dictionary;
@@ -95,7 +108,8 @@ namespace Kafka.Client.Utils
 
 		private class ReadOnly<T> : ReadOnlyCollection<T>
 		{
-			public ReadOnly(IList<T> list) : base(list)
+			public ReadOnly(IList<T> list)
+				: base(list)
 			{
 			}
 			public IList<T> Values { get { return Items; } }

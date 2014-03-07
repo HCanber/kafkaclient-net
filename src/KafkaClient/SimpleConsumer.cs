@@ -95,7 +95,7 @@ namespace Kafka.Client
 
 				partitionsToGet.Clear();
 				if(failedItems != null && failedItems.Count > 0)
-					throw new FetchFailed(failedItems.Select(p => Tuple.Create(p.TopicAndPartition, (FetchResponsePartitionData)null)).ToList(), "Failures occurred when fetching partitions and offsets: " + string.Join(", ", failedItems.Select(t => t.TopicAndPartition + ":" + t.Value)));
+					throw new FetchFailed(failedItems.Select(t => Tuple.Create(t.Item1.TopicAndPartition, (FetchResponsePartitionData)null)).ToList(), "Failures occurred when fetching partitions and offsets: " + string.Join(", ", failedItems.Select(t => t.Item1.TopicAndPartition + ":" + t.Item1.Value)));
 
 				var errorResponses = responses.SelectMany(r => r.Data).Where(kvp => kvp.Value.HasError).Select(kvp => Tuple.Create(kvp.Key, kvp.Value)).ToList();
 				if(errorResponses.Count > 0)

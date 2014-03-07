@@ -90,10 +90,20 @@ namespace Kafka.Client.Network
 
 		public Task ConnectAsync()
 		{
-			//Connect the TcpClient
-			var task = InternalConnectDoNotCallThis();
-			//When connect, signal to the rest of the class that it may continue.
-			task.Then(t => _userHasCalledConnectGate.Set());
+			Task task;
+			if(!_client.Connected)
+			{
+				//Connect the TcpClient
+				task = InternalConnectDoNotCallThis();
+				//When connect, signal to the rest of the class that it may continue.
+				task=task.Then(t => _userHasCalledConnectGate.Set());				
+			}
+			else
+			{
+				//Already connected, signal to the rest of the class that it may continue.
+				_userHasCalledConnectGate.Set();
+				task = Task.FromResult<object>(null);
+			}
 			return task;
 		}
 
@@ -117,9 +127,20 @@ namespace Kafka.Client.Network
 		private async Task InternalConnectDoNotCallThis()
 		{
 			await _client.ConnectAsync(_hostPort.Host, _hostPort.Port);
+			OnConnected(new EventArgs());
 			_Logger.DebugFormat("Connected connection [{0}]", _id);
 		}
 
+		public event EventHandler<EventArgs> Connected;
+
+		protected virtual void OnConnected(EventArgs eventArgs)
+		{
+			var handler = Connected;
+			if(handler != null)
+			{
+				handler(this, eventArgs);
+			}
+		}
 		public void Disconnect()
 		{
 			if(!_client.Connected) return;
@@ -605,5 +626,4 @@ namespace Kafka.Client.Network
 			}
 		}
 	}
-
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Kafka.Client.Api;
@@ -7,21 +8,11 @@ namespace Kafka.Client.Exceptions
 {
 	public class FailedMessagesException : KafkaException
 	{
-		private readonly IReadOnlyCollection<Tuple<object, TopicAndPartition>> _failedMessages;
+		private readonly IEnumerable<TopicAndPartitionValue<IEnumerable<IMessage>>> _failedMessages;
 
-		protected FailedMessagesException()
-		{
-		}
-
-		public FailedMessagesException(IReadOnlyCollection<Tuple<object, TopicAndPartition>> failedMessages, string message)
-			: base(message)
+		public FailedMessagesException(IEnumerable<TopicAndPartitionValue<IEnumerable<IMessage>>> failedMessages)
 		{
 			_failedMessages = failedMessages;
-		}
-
-		public FailedMessagesException(IReadOnlyCollection<Tuple<object, TopicAndPartition>> failedMessages, string message, Exception inner)
-			: base(message, inner)
-		{
 		}
 
 		protected FailedMessagesException(SerializationInfo info, StreamingContext context)
@@ -29,7 +20,8 @@ namespace Kafka.Client.Exceptions
 		{
 		}
 
-		public IReadOnlyCollection<Tuple<object, TopicAndPartition>> FailedMessages
+
+		public IEnumerable<TopicAndPartitionValue<IEnumerable<IMessage>>> FailedMessages
 		{
 			get { return _failedMessages; }
 		}

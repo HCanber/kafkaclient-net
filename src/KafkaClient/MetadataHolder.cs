@@ -10,7 +10,7 @@ using Kafka.Client.JetBrainsAnnotations;
 using Kafka.Client.Utils;
 
 namespace Kafka.Client
-{
+{	
 	public class MetadataHolder
 	{
 		private readonly KafkaClient _client;
@@ -34,6 +34,20 @@ namespace Kafka.Client
 			_metadataByTopic.TryRemove(topic, out partitions);
 		}
 
+		public void ResetMetadataForHost(HostPort hostPort)
+		{
+			var topicsToRemove = (
+				from topicMetadata in _metadataByTopic.Values
+				from partitionMetaData in topicMetadata.PartionMetaDatas.Values
+				where partitionMetaData.Leader.Host == hostPort || partitionMetaData.Replicas.Any(replica => replica.Host == hostPort)
+				select topicMetadata.Topic).ToList();
+			foreach(var topicToRemove in topicsToRemove)
+			{
+				TopicMetadata ignored;
+				_metadataByTopic.TryRemove(topicToRemove, out ignored);
+			}
+		}
+
 		public async Task<TopicMetadata> GetMetadataForTopic([NotNull] string topic, CancellationToken cancellationToken, bool useCachedValues = true)
 		{
 			if(topic == null) throw new ArgumentNullException("topic");
@@ -46,7 +60,8 @@ namespace Kafka.Client
 					throw new UnknownTopicException(topic);
 				case KafkaError.LeaderNotAvailable:
 					//This error code is sent as an error on the topic level when the topic did not exist, but config has autoCreateTopicsEnable=true.
-					//So the topic is created but no leader is known at this time. See Kafka source code: handleTopicMetadataRequest() in KafkaApis.scala
+					//So the topic is created but no leader is known at this time. 
+					//See Kafka source code: second part of handleTopicMetadataRequest() in KafkaApis.scala (search for autoCreateTopicsEnable)
 					throw new TopicCreatedNoLeaderYetException(new TopicAndPartition(topic, -1));
 			}
 			return meta;
@@ -80,6 +95,7 @@ namespace Kafka.Client
 		/// <returns>The leader. <c>null</c> if no leader exists.</returns>
 		/// <exception cref="UnknownTopicException">Thrown if topic do not exist</exception>
 		/// <exception cref="KafkaInvalidPartitionException">Thrown if partition do not exist</exception>
+		/// <exception cref="TopicCreatedNoLeaderYetException">The topic has just been created, retry in a little while.</exception>
 		public async Task<Broker> GetLeaderAsync(TopicAndPartition topicAndPartition, CancellationToken cancellationToken, bool allowTopicsToBeCreated = false)
 		{
 			var topic = topicAndPartition.Topic;
@@ -208,5 +224,7 @@ namespace Kafka.Client
 			OnlyExistingTopics = 4,
 			OnlyExistingTopicsAllowServer = AllowFetchFromServer + OnlyExistingTopics,
 		}
+
+
 	}
 }
